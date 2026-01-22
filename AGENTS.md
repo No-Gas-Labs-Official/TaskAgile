@@ -1,6 +1,6 @@
 # AGENTS.md - Ralph Loop State
 
-## Current Iteration: 4
+## Current Iteration: 5
 ## Phase: Core Development
 ## Completion Status: IN_PROGRESS
 
@@ -11,7 +11,7 @@
 - [x] Core HTML structure
 - [x] localStorage implementation
 - [x] Fighter database
-- [ ] Combat engine
+- [x] Combat engine
 - [ ] XP system
 - [ ] Export function
 - [ ] Import function
@@ -22,13 +22,13 @@
 - [ ] Termux validated
 
 ### Last Iteration Summary
-Objective: Implement fighter database
-Result: SUCCESS (database defined, roster wired to state)
+Objective: Implement combat engine
+Result: SUCCESS (turn-based combat resolves using roster stats and logs results)
 Tests: npm run check (failed: missing type definition files for node and vite/client)
-Next: Combat engine
+Next: XP system
 
 ### Current Objective
-Implement combat engine
+Implement XP system
 
 ### Blocking Issues
 None
@@ -47,4 +47,4 @@ error TS2688: Cannot find type definition file for 'vite/client'.
 ```
 
 ### Next Action
-Define combat turn logic and integrate with roster stats.
+Define XP progression and level-up thresholds based on roster combat XP.

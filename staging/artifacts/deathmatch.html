@@ -342,6 +342,7 @@
       episode: 1,
       momentum: 0,
       xp: 0,
+      combatRound: 1,
       roster: defaultRoster.map((id) => ({ id, level: 1, xp: 0 })),
       combatLog: ["Awaiting opening bell..."],
       lastSavedAt: null
@@ -362,6 +363,56 @@
 
     const getFighterById = (id) => fighterDatabase.find((fighter) => fighter.id === id);
 
+    const rollDie = (sides) => Math.floor(Math.random() * sides) + 1;
+
+    const getMemberStats = (member) => {
+      const fighter = getFighterById(member.id);
+      if (!fighter) {
+        return null;
+      }
+      const levelBonus = Math.max(member.level - 1, 0);
+      return {
+        fighter,
+        power: fighter.baseStats.power + levelBonus,
+        defense: fighter.baseStats.defense + levelBonus,
+        speed: fighter.baseStats.speed + Math.floor(levelBonus / 2)
+      };
+    };
+
+    const selectCombatants = () => {
+      if (state.roster.length < 2) {
+        return null;
+      }
+      const firstIndex = Math.floor(Math.random() * state.roster.length);
+      let secondIndex = Math.floor(Math.random() * state.roster.length);
+      while (secondIndex === firstIndex) {
+        secondIndex = Math.floor(Math.random() * state.roster.length);
+      }
+      const firstMember = state.roster[firstIndex];
+      const secondMember = state.roster[secondIndex];
+      const firstStats = getMemberStats(firstMember);
+      const secondStats = getMemberStats(secondMember);
+      if (!firstStats || !secondStats) {
+        return null;
+      }
+      const firstInitiative = firstStats.speed + rollDie(6);
+      const secondInitiative = secondStats.speed + rollDie(6);
+      if (secondInitiative > firstInitiative) {
+        return {
+          attacker: secondMember,
+          defender: firstMember,
+          attackerStats: secondStats,
+          defenderStats: firstStats
+        };
+      }
+      return {
+        attacker: firstMember,
+        defender: secondMember,
+        attackerStats: firstStats,
+        defenderStats: secondStats
+      };
+    };
+
     const renderFighters = () => {
       fighterList.innerHTML = "";
       state.roster.forEach((member) => {
@@ -377,7 +428,7 @@
             <small>${fighter.role}: ${fighter.tagline}</small>
             <small>Specialty: ${fighter.specialty}</small>
           </div>
-          <span>Lv ${member.level}</span>
+          <span>Lv ${member.level} • XP ${member.xp}</span>
         `;
         fighterList.appendChild(item);
       });
@@ -447,6 +498,38 @@
       renderLog();
     };
 
+    const runCombatTurn = () => {
+      const matchup = selectCombatants();
+      if (!matchup) {
+        log("Roster needs at least two fighters to run a combat turn.");
+        return;
+      }
+      const { attacker, defender, attackerStats, defenderStats } = matchup;
+      const attackRoll = attackerStats.power * 2 + attackerStats.speed + rollDie(8);
+      const defenseRoll = defenderStats.defense * 2 + defenderStats.speed + rollDie(8);
+      const hit = attackRoll >= defenseRoll;
+      const impact = hit ? Math.max(1, Math.round((attackRoll - defenseRoll) / 3 + attackerStats.power / 2)) : 0;
+      const xpGain = 3 + (hit ? 2 : 1) + Math.min(3, Math.floor(impact / 3));
+      state.momentum = Math.max(0, state.momentum + (hit ? 2 : -1));
+      state.xp += xpGain;
+      attacker.xp += xpGain;
+      state.combatRound += 1;
+      renderState();
+      if (hit) {
+        log(
+          `Round ${state.combatRound}: ${attackerStats.fighter.name} unleashes ${
+            attackerStats.fighter.specialty
+          } for ${impact} impact on ${defenderStats.fighter.name}. (+${xpGain} XP)`
+        );
+      } else {
+        log(
+          `Round ${state.combatRound}: ${defenderStats.fighter.name} parries ${
+            attackerStats.fighter.name
+          }'s ${attackerStats.fighter.specialty}. (+${xpGain} XP)`
+        );
+      }
+    };
+
     state = loadState();
     renderState();
 
@@ -470,16 +553,16 @@
     });
 
     document.getElementById("simulate-turn").addEventListener("click", () => {
-      state.momentum += 2;
-      state.xp += 5;
-      momentum.textContent = `+${state.momentum}`;
-      xp.textContent = state.xp;
-      log("Simulated turn: momentum +2, XP +5.");
+      runCombatTurn();
     });
 
     document.getElementById("train-team").addEventListener("click", () => {
-      state.xp += 10;
-      xp.textContent = state.xp;
+      const trainingBoost = 4;
+      state.roster.forEach((member) => {
+        member.xp += trainingBoost;
+      });
+      state.xp += trainingBoost * state.roster.length;
+      renderState();
       log("Training complete: roster XP boosted.");
     });
   </script>
