@@ -287,15 +287,62 @@
     const storageStatus = document.getElementById("storage-status");
 
     const STORAGE_KEY = "ngl_deathmatch_state_v1";
+    const fighterDatabase = [
+      {
+        id: "nova-flux",
+        name: "Nova Flux",
+        role: "Host",
+        tagline: "Energy Catalyst",
+        specialty: "Pulse Rally",
+        baseStats: { power: 7, defense: 5, speed: 8 }
+      },
+      {
+        id: "dj-mythos",
+        name: "DJ Mythos",
+        role: "Support",
+        tagline: "Sound Surgeon",
+        specialty: "Bass Shield",
+        baseStats: { power: 5, defense: 7, speed: 6 }
+      },
+      {
+        id: "captain-fringe",
+        name: "Captain Fringe",
+        role: "Challenger",
+        tagline: "Glitch Broker",
+        specialty: "Lag Spike",
+        baseStats: { power: 8, defense: 4, speed: 5 }
+      },
+      {
+        id: "dr-velvet",
+        name: "Dr. Velvet",
+        role: "Analyst",
+        tagline: "Tactical Alchemist",
+        specialty: "Focus Serum",
+        baseStats: { power: 6, defense: 8, speed: 4 }
+      },
+      {
+        id: "orbit-rush",
+        name: "Orbit Rush",
+        role: "Wildcard",
+        tagline: "Momentum Pirate",
+        specialty: "Gravity Flip",
+        baseStats: { power: 7, defense: 5, speed: 7 }
+      },
+      {
+        id: "luna-arc",
+        name: "Luna Arc",
+        role: "Striker",
+        tagline: "Neon Fury",
+        specialty: "Arc Flash",
+        baseStats: { power: 9, defense: 4, speed: 6 }
+      }
+    ];
+    const defaultRoster = ["nova-flux", "dj-mythos", "captain-fringe"];
     const defaultState = {
       episode: 1,
       momentum: 0,
       xp: 0,
-      fighters: [
-        { name: "Nova Flux", role: "Host", tagline: "Energy Catalyst", level: 1 },
-        { name: "DJ Mythos", role: "Support", tagline: "Sound Surgeon", level: 1 },
-        { name: "Captain Fringe", role: "Challenger", tagline: "Glitch Broker", level: 1 }
-      ],
+      roster: defaultRoster.map((id) => ({ id, level: 1, xp: 0 })),
       combatLog: ["Awaiting opening bell..."],
       lastSavedAt: null
     };
@@ -313,17 +360,24 @@
 
     let state = structuredClone(defaultState);
 
+    const getFighterById = (id) => fighterDatabase.find((fighter) => fighter.id === id);
+
     const renderFighters = () => {
       fighterList.innerHTML = "";
-      state.fighters.forEach((fighter) => {
+      state.roster.forEach((member) => {
+        const fighter = getFighterById(member.id);
+        if (!fighter) {
+          return;
+        }
         const item = document.createElement("div");
         item.className = "list-item";
         item.innerHTML = `
           <div>
             <strong>${fighter.name}</strong><br />
             <small>${fighter.role}: ${fighter.tagline}</small>
+            <small>Specialty: ${fighter.specialty}</small>
           </div>
-          <span>Lv ${fighter.level}</span>
+          <span>Lv ${member.level}</span>
         `;
         fighterList.appendChild(item);
       });
@@ -366,7 +420,19 @@
       }
       try {
         const parsed = JSON.parse(raw);
-        return { ...structuredClone(defaultState), ...parsed };
+        const merged = { ...structuredClone(defaultState), ...parsed };
+        if (!Array.isArray(merged.roster)) {
+          if (Array.isArray(parsed.fighters)) {
+            merged.roster = parsed.fighters.map((fighter) => ({
+              id: fighterDatabase.find((entry) => entry.name === fighter.name)?.id ?? defaultRoster[0],
+              level: fighter.level ?? 1,
+              xp: fighter.xp ?? 0
+            }));
+          } else {
+            merged.roster = structuredClone(defaultState.roster);
+          }
+        }
+        return merged;
       } catch (error) {
         storageStatus.textContent = "Corrupt";
         return structuredClone(defaultState);
