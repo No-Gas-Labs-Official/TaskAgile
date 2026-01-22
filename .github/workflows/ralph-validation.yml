@@ -1,0 +1,53 @@
+name: Ralph Loop Validation
+
+on:
+  push:
+    branches: [ main, mirror ]
+  pull_request:
+    branches: [ main, mirror ]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
+      run: |
+        cd staging/validations
+        npm install
+        
+    - name: Run validation tests
+      run: |
+        cd staging/validations
+        ITERATION=${{ github.run_number }} npm test
+        
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results
+        path: staging/logs/test-results.json
+        
+    - name: Upload screenshots
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: screenshots
+        path: staging/logs/screenshots/
+        
+    - name: Deploy to GitHub Pages
+      if: success() && github.ref == 'refs/heads/mirror'
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./staging/artifacts
+        publish_branch: gh-pages

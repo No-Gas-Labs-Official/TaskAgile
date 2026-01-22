@@ -1,0 +1,26 @@
+{
+  "name": "ngl-deathmatch-validation",
+  "version": "1.0.0",
+  "description": "No_Gas_Labs™ Celebrity Deathmatch - Ralph Loop Validation Harness",
+  "main": "test-suite.js",
+  "scripts": {
+    "test": "node test-suite.js",
+    "install-deps": "npm install --silent",
+    "clean": "rm -rf node_modules package-lock.json"
+  },
+  "keywords": [
+    "ralph-loop",
+    "validation",
+    "puppeteer",
+    "testing",
+    "no-gas-labs"
+  ],
+  "author": "No_Gas_Labs™",
+  "license": "MIT",
+  "dependencies": {
+    "puppeteer": "^21.6.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

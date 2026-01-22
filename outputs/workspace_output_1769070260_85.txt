@@ -1,0 +1,20 @@
+    // Service Worker registration for PWA (will be implemented later)
+    if ('serviceWorker' in navigator) {
+      console.log('Service Worker API available');
+      // navigator.serviceWorker.register('/sw.js').catch(console.error);
+    }
+
+    // Prevent zoom on double-tap (mobile)
+    document.addEventListener('dblclick', function(event) {
+      event.preventDefault();
+    }, { passive: false });
+
+    // Prevent pull-to-refresh on mobile
+    document.body.addEventListener('touchmove', function(e) {
+      if (e.touches.length > 1) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+  </script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build artifacts
+*.log
+*.tmp
+
+# Staging directories (keep structure, ignore some contents)
+staging/logs/*.log
+staging/logs/screenshots/*.png
+staging/backups/*
+!staging/backups/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Emergency files
+staging/EMERGENCY_STOP
+
+# Test artifacts
+staging/logs/test-results.json
+!staging/logs/.gitkeep
+!staging/artifacts/deathmatch.html
