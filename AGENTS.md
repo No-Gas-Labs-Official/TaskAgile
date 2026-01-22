@@ -1,6 +1,6 @@
 # AGENTS.md - Ralph Loop State
 
-## Current Iteration: 3
+## Current Iteration: 4
 ## Phase: Core Development
 ## Completion Status: IN_PROGRESS
 
@@ -10,7 +10,7 @@
 - [x] Gitignore setup
 - [x] Core HTML structure
 - [x] localStorage implementation
-- [ ] Fighter database
+- [x] Fighter database
 - [ ] Combat engine
 - [ ] XP system
 - [ ] Export function
@@ -22,13 +22,13 @@
 - [ ] Termux validated
 
 ### Last Iteration Summary
-Objective: Implement localStorage for loop state and fighter data
-Result: SUCCESS (state persisted, roster rendered from storage)
+Objective: Implement fighter database
+Result: SUCCESS (database defined, roster wired to state)
 Tests: npm run check (failed: missing type definition files for node and vite/client)
-Next: Fighter database
+Next: Combat engine
 
 ### Current Objective
-Implement fighter database
+Implement combat engine
 
 ### Blocking Issues
 None
@@ -47,4 +47,4 @@ error TS2688: Cannot find type definition file for 'vite/client'.
 ```
 
 ### Next Action
-Define fighter database entries and wire them into the loop state.
+Define combat turn logic and integrate with roster stats.
