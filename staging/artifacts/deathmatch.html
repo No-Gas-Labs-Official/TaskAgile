@@ -268,7 +268,7 @@
         </div>
         <div class="list-item">
           <span>localStorage hooks</span>
-          <strong>Pending</strong>
+          <strong id="storage-status">Pending</strong>
         </div>
       </div>
     </section>
@@ -283,48 +283,158 @@
     const momentum = document.getElementById("momentum");
     const xp = document.getElementById("xp");
     const combatLog = document.getElementById("combat-log");
+    const fighterList = document.getElementById("fighter-list");
+    const storageStatus = document.getElementById("storage-status");
 
-    let episode = 1;
-    let momentumValue = 0;
-    let xpValue = 0;
-
-    const log = (message) => {
-      const entry = document.createElement("div");
-      entry.textContent = message;
-      combatLog.prepend(entry);
+    const STORAGE_KEY = "ngl_deathmatch_state_v1";
+    const defaultState = {
+      episode: 1,
+      momentum: 0,
+      xp: 0,
+      fighters: [
+        { name: "Nova Flux", role: "Host", tagline: "Energy Catalyst", level: 1 },
+        { name: "DJ Mythos", role: "Support", tagline: "Sound Surgeon", level: 1 },
+        { name: "Captain Fringe", role: "Challenger", tagline: "Glitch Broker", level: 1 }
+      ],
+      combatLog: ["Awaiting opening bell..."],
+      lastSavedAt: null
     };
 
+    const storageAvailable = (() => {
+      try {
+        const testKey = "__ngl_storage_test__";
+        localStorage.setItem(testKey, "1");
+        localStorage.removeItem(testKey);
+        return true;
+      } catch (error) {
+        return false;
+      }
+    })();
+
+    const cloneState = (value) => JSON.parse(JSON.stringify(value));
+
+    const normalizeState = (input) => {
+      const normalized = { ...cloneState(defaultState), ...(input ?? {}) };
+      normalized.episode = Number.isFinite(normalized.episode) ? normalized.episode : 1;
+      normalized.momentum = Number.isFinite(normalized.momentum) ? normalized.momentum : 0;
+      normalized.xp = Number.isFinite(normalized.xp) ? normalized.xp : 0;
+      normalized.fighters = Array.isArray(normalized.fighters)
+        ? normalized.fighters
+        : cloneState(defaultState.fighters);
+      normalized.combatLog = Array.isArray(normalized.combatLog)
+        ? normalized.combatLog
+        : cloneState(defaultState.combatLog);
+      return normalized;
+    };
+
+    let state = cloneState(defaultState);
+
+    const renderFighters = () => {
+      fighterList.innerHTML = "";
+      state.fighters.forEach((fighter) => {
+        const item = document.createElement("div");
+        item.className = "list-item";
+        item.innerHTML = `
+          <div>
+            <strong>${fighter.name}</strong><br />
+            <small>${fighter.role}: ${fighter.tagline}</small>
+          </div>
+          <span>Lv ${fighter.level}</span>
+        `;
+        fighterList.appendChild(item);
+      });
+    };
+
+    const renderLog = () => {
+      combatLog.innerHTML = "";
+      state.combatLog.slice(0, 6).forEach((message) => {
+        const entry = document.createElement("div");
+        entry.textContent = message;
+        combatLog.appendChild(entry);
+      });
+    };
+
+    const persistState = () => {
+      if (!storageAvailable) {
+        storageStatus.textContent = "Unavailable";
+        return;
+      }
+      state.lastSavedAt = new Date().toISOString();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      storageStatus.textContent = "Ready";
+    };
+
+    const log = (message, options = {}) => {
+      const { persist = true } = options;
+      state.combatLog.unshift(message);
+      state.combatLog = state.combatLog.slice(0, 12);
+      renderLog();
+      if (persist) {
+        persistState();
+      }
+    };
+
+    const loadState = () => {
+      if (!storageAvailable) {
+        storageStatus.textContent = "Unavailable";
+        return cloneState(defaultState);
+      }
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        storageStatus.textContent = "Ready";
+        return cloneState(defaultState);
+      }
+      try {
+        const parsed = JSON.parse(raw);
+        return normalizeState(parsed);
+      } catch (error) {
+        storageStatus.textContent = "Corrupt";
+        return cloneState(defaultState);
+      }
+    };
+
+    const renderState = () => {
+      episodeCount.textContent = String(state.episode).padStart(2, "0");
+      momentum.textContent = `+${state.momentum}`;
+      xp.textContent = state.xp;
+      renderFighters();
+      renderLog();
+    };
+
+    state = loadState();
+    renderState();
+
     document.getElementById("start-loop").addEventListener("click", () => {
-      episode += 1;
-      episodeCount.textContent = String(episode).padStart(2, "0");
-      log(`Episode ${episode} begins. Crowd hype rising.`);
+      state.episode += 1;
+      episodeCount.textContent = String(state.episode).padStart(2, "0");
+      log(`Episode ${state.episode} begins. Crowd hype rising.`);
     });
 
     document.getElementById("save-loop").addEventListener("click", () => {
-      log("Beat saved (placeholder).");
+      log("Beat saved to localStorage.");
     });
 
     document.getElementById("reset-loop").addEventListener("click", () => {
-      episode = 1;
-      momentumValue = 0;
-      xpValue = 0;
-      episodeCount.textContent = "01";
-      momentum.textContent = "+0";
-      xp.textContent = "0";
-      log("Loop reset. Systems idle.");
+      state = cloneState(defaultState);
+      if (storageAvailable) {
+        localStorage.removeItem(STORAGE_KEY);
+        storageStatus.textContent = "Cleared";
+      }
+      renderState();
+      log("Loop reset. Systems idle.", { persist: false });
     });
 
     document.getElementById("simulate-turn").addEventListener("click", () => {
-      momentumValue += 2;
-      xpValue += 5;
-      momentum.textContent = `+${momentumValue}`;
-      xp.textContent = xpValue;
+      state.momentum += 2;
+      state.xp += 5;
+      momentum.textContent = `+${state.momentum}`;
+      xp.textContent = state.xp;
       log("Simulated turn: momentum +2, XP +5.");
     });
 
     document.getElementById("train-team").addEventListener("click", () => {
-      xpValue += 10;
-      xp.textContent = xpValue;
+      state.xp += 10;
+      xp.textContent = state.xp;
       log("Training complete: roster XP boosted.");
     });
   </script>
