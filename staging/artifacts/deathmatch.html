@@ -207,6 +207,20 @@
       background: var(--danger);
     }
 
+    .xp-bar {
+      height: 6px;
+      background: rgba(74, 141, 255, 0.2);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .xp-fill {
+      height: 100%;
+      background: var(--accent-2);
+      transition: width 0.3s ease;
+    }
+
     footer {
       text-align: center;
       color: var(--muted);
@@ -252,7 +266,7 @@
           <strong id="momentum">+0</strong>
         </div>
         <div class="stat">
-          <span>XP</span>
+          <span>Team XP</span>
           <strong id="xp">0</strong>
         </div>
       </div>
@@ -324,6 +338,10 @@
           <span>Combat Engine</span>
           <strong id="combat-status">Ready</strong>
         </div>
+        <div class="list-item">
+          <span>XP System</span>
+          <strong id="xp-status">Ready</strong>
+        </div>
       </div>
     </section>
 
@@ -340,9 +358,14 @@
     const fighterList = document.getElementById("fighter-list");
     const storageStatus = document.getElementById("storage-status");
     const combatStatus = document.getElementById("combat-status");
+    const xpStatus = document.getElementById("xp-status");
     const battleArena = document.getElementById("battle-arena");
 
     const STORAGE_KEY = "ngl_deathmatch_state_v1";
+    
+    // XP thresholds for each level
+    const XP_THRESHOLDS = [0, 50, 150, 300, 500, 800, 1200, 1700, 2300, 3000];
+    
     const fighterDatabase = [
       {
         id: "nova-flux",
@@ -420,6 +443,34 @@
 
     const getFighterById = (id) => fighterDatabase.find((fighter) => fighter.id === id);
 
+    const getXPForLevel = (level) => {
+      return XP_THRESHOLDS[level - 1] || XP_THRESHOLDS[XP_THRESHOLDS.length - 1];
+    };
+
+    const checkLevelUp = (member) => {
+      const nextLevelXP = getXPForLevel(member.level + 1);
+      if (member.xp >= nextLevelXP && member.level < 10) {
+        member.level += 1;
+        return true;
+      }
+      return false;
+    };
+
+    const distributeXP = (amount) => {
+      state.xp += amount;
+      
+      // Distribute XP evenly among roster members
+      const xpPerMember = Math.floor(amount / state.roster.length);
+      state.roster.forEach(member => {
+        member.xp += xpPerMember;
+        if (checkLevelUp(member)) {
+          log(`🎉 ${getFighterById(member.id).name} leveled up to Lv ${member.level}!`);
+        }
+      });
+      
+      xp.textContent = state.xp;
+    };
+
     const calculateStats = (member) => {
       const fighter = getFighterById(member.id);
       if (!fighter) return { power: 5, defense: 5, speed: 5 };
@@ -474,7 +525,7 @@
         turnLog.push(`${attacker.fighter.name} uses ${attacker.fighter.specialty} on ${defender.fighter.name}: ${damage} damage!`);
 
         // XP for attacking
-        state.xp += 2;
+        distributeXP(2);
         state.momentum += 1;
       });
 
@@ -486,7 +537,7 @@
       if (knockedOut.length > 0) {
         knockedOut.forEach(ko => {
           turnLog.push(`💥 ${ko.fighter.name} is knocked out!`);
-          state.xp += 20;
+          distributeXP(20);
           state.momentum += 5;
         });
         state.inCombat = false;
@@ -527,6 +578,9 @@
         const fighter = getFighterById(combatant.id);
         const hpPercent = (combatant.hp / combatant.maxHp) * 100;
         const hpClass = hpPercent <= 30 ? 'low' : '';
+        const nextLevelXP = getXPForLevel(combatant.level + 1);
+        const currentLevelXP = getXPForLevel(combatant.level);
+        const xpPercent = combatant.level >= 10 ? 100 : Math.min(100, ((combatant.xp - currentLevelXP) / (nextLevelXP - currentLevelXP)) * 100);
         return `
           <div class="fighter-card ${combatant.hp > 0 ? 'active' : ''}">
             <h4>${fighter.name} <small style="color: var(--muted); font-size: 0.8rem;">Lv ${combatant.level}</small></h4>
@@ -536,6 +590,12 @@
             </div>
             <div class="health-bar">
               <div class="health-fill ${hpClass}" style="width: ${hpPercent}%"></div>
+            </div>
+            <div style="margin-top: 6px;">
+              <span style="color: var(--muted); font-size: 0.8rem;">XP: ${combatant.xp}/${combatant.level >= 10 ? 'MAX' : nextLevelXP}</span>
+              <div class="xp-bar">
+                <div class="xp-fill" style="width: ${xpPercent}%"></div>
+              </div>
             </div>
           </div>
         `;
@@ -633,6 +693,7 @@
     state = loadState();
     renderState();
     combatStatus.textContent = "Active";
+    xpStatus.textContent = "Active";
 
     document.getElementById("start-loop").addEventListener("click", () => {
       state.episode += 1;
@@ -663,8 +724,7 @@
     });
 
     document.getElementById("train-team").addEventListener("click", () => {
-      state.xp += 10;
-      xp.textContent = state.xp;
+      distributeXP(10);
       log("Training complete: roster XP boosted.");
     });
   </script>

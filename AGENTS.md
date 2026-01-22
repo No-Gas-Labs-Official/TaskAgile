@@ -1,6 +1,6 @@
 # AGENTS.md - Ralph Loop State
 
-## Current Iteration: 4
+## Current Iteration: 5
 ## Phase: Core Development
 ## Completion Status: IN_PROGRESS
 
@@ -12,7 +12,7 @@
 - [x] localStorage implementation
 - [x] Fighter database (celebrity personas + stats)
 - [x] Combat engine (turn-based simulation)
-- [ ] XP system (progression + levels)
+- [x] XP system (progression + levels)
 - [ ] Export function (JSON download)
 - [ ] Import function (JSON upload)
 - [ ] Reset function (localStorage clear)
@@ -22,13 +22,13 @@
 - [ ] Termux validated (Android compatible)
 
 ### Last Iteration Summary
-Objective: Implement combat engine
+Objective: Implement XP progression system
 Result: SUCCESS
-Status: Full turn-based combat system with HP, damage calculation, KO detection, and battle arena UI
-Next: XP progression system with level-ups
+Status: XP system with level thresholds, level-up notifications, XP distribution, and XP bars added
+Next: Export/Import/Reset functions
 
 ### Current Objective
-Implement XP progression system with level-ups
+Implement Export, Import, and Reset functions
 
 ### Blocking Issues
 None
@@ -43,4 +43,4 @@ None
 None
 
 ### Next Action
-Add level-up logic based on XP thresholds and stat bonuses
+Add Export (JSON download), Import (JSON upload), and full Reset buttons
