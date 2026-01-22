@@ -52,6 +52,9 @@
       cursor: pointer;
       min-height: 44px;
       min-width: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       transition: all 0.3s ease;
       text-transform: uppercase;
       font-weight: bold;
@@ -65,6 +68,12 @@
 
     button:active {
       transform: scale(0.95);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      box-shadow: none;
     }
 
     #status {
@@ -196,6 +205,12 @@
     .fighter-side {
       flex: 1;
       text-align: center;
+      --jitter-x: 0px;
+      --jitter-y: 0px;
+      --jitter-rot: 0deg;
+      --impact-scale: 1;
+      transform: translate(var(--jitter-x), var(--jitter-y)) rotate(var(--jitter-rot)) scale(var(--impact-scale));
+      transition: transform 0.08s steps(2);
     }
 
     .fighter-info h3 {
@@ -217,6 +232,26 @@
       height: 100%;
       background: linear-gradient(90deg, #e94560, #ff6b6b);
       transition: width 0.3s ease;
+    }
+
+    .energy-bar {
+      background: #101828;
+      border: 2px solid #46e5a6;
+      height: 12px;
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 8px 0 6px;
+    }
+
+    .energy-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #46e5a6, #8bffd6);
+      transition: width 0.2s ease;
+    }
+
+    .energy-text {
+      font-size: 0.75rem;
+      color: #8bffd6;
     }
 
     .vs-divider {
@@ -271,7 +306,7 @@
     
     <div id="status">
       <p>Ready to rumble!</p>
-      <p>Iteration: 3 - Combat Engine Active</p>
+      <p>Iteration: 4 - Real-Time Combat Active</p>
     </div>
     
     <div id="fightersGrid" class="fighters-grid" style="display: none;">
@@ -292,6 +327,10 @@
               <div class="hp-fill" id="playerHP"></div>
             </div>
             <p id="playerHPText">HP: 100/100</p>
+            <div class="energy-bar">
+              <div class="energy-fill" id="playerEnergy"></div>
+            </div>
+            <p class="energy-text" id="playerEnergyText">Energy: 0%</p>
           </div>
         </div>
         
@@ -304,6 +343,10 @@
               <div class="hp-fill" id="enemyHP"></div>
             </div>
             <p id="enemyHPText">HP: 100/100</p>
+            <div class="energy-bar">
+              <div class="energy-fill" id="enemyEnergy"></div>
+            </div>
+            <p class="energy-text" id="enemyEnergyText">Energy: 0%</p>
           </div>
         </div>
       </div>
@@ -330,18 +373,18 @@
     </div>
     
     <div class="stats">
-      <p>Version: 1.0.0-iter-3</p>
+      <p>Version: 1.0.0-iter-4</p>
       <p>Offline-capable | No dependencies</p>
     </div>
   </div>
 
   <script>
     // No_Gas_Labs™ Celebrity Deathmatch - Core Infrastructure
-    // Ralph Loop Iteration 2
+    // Ralph Loop Iteration 4
     // Zero external dependencies - localStorage powered
 
     const STORAGE_KEY = 'ngl_deathmatch_data';
-    const VERSION = '1.0.0-iter-2';
+    const VERSION = '1.0.0-iter-4';
 
     // Fighter Database
     const FIGHTERS = [
@@ -440,16 +483,24 @@
       enemyHP: 0,
       playerMaxHP: 0,
       enemyMaxHP: 0,
-      turn: 'player',
+      playerEnergy: 0,
+      enemyEnergy: 0,
+      playerStunTicks: 0,
+      enemyStunTicks: 0,
       specialCooldown: 0,
-      healCooldown: 0
+      healCooldown: 0,
+      enemySpecialCooldown: 0,
+      enemyHealCooldown: 0
     };
+
+    let heartbeatInterval = null;
+    let renderInterval = null;
 
     // Initialize on load
     window.onload = function() {
       console.log('No_Gas_Labs™ Deathmatch initialized');
       console.log('Version:', VERSION);
-      console.log('Iteration: 3');
+      console.log('Iteration: 4');
       console.log('Fighters loaded:', FIGHTERS.length);
       loadData();
     };
@@ -649,19 +700,27 @@
         enemyHP: enemy.hp,
         playerMaxHP: selectedFighter.hp,
         enemyMaxHP: enemy.hp,
-        turn: 'player',
+        playerEnergy: 0,
+        enemyEnergy: 0,
+        playerStunTicks: 0,
+        enemyStunTicks: 0,
         specialCooldown: 0,
-        healCooldown: 0
+        healCooldown: 0,
+        enemySpecialCooldown: 0,
+        enemyHealCooldown: 0
       };
 
       // Show battle arena
       document.getElementById('fightersGrid').style.display = 'none';
       document.getElementById('battleArena').style.display = 'block';
+      document.getElementById('battleLog').innerHTML = '';
 
       // Update UI
       updateBattleUI();
       addBattleLog(`⚔️ ${battleState.player.name} vs ${battleState.enemy.name}!`);
-      addBattleLog('Battle starts! Your turn.');
+      addBattleLog('Battle starts! Build energy and strike fast.');
+
+      startBattleLoops();
 
       // Save state
       const data = loadData() || {};
@@ -685,12 +744,23 @@
       document.getElementById('playerHPText').textContent = `HP: ${Math.max(0, battleState.playerHP)}/${battleState.playerMaxHP}`;
       document.getElementById('enemyHPText').textContent = `HP: ${Math.max(0, battleState.enemyHP)}/${battleState.enemyMaxHP}`;
 
+      const playerEnergyPercent = Math.min(100, (battleState.playerEnergy / 100) * 100);
+      const enemyEnergyPercent = Math.min(100, (battleState.enemyEnergy / 100) * 100);
+
+      document.getElementById('playerEnergy').style.width = `${playerEnergyPercent}%`;
+      document.getElementById('enemyEnergy').style.width = `${enemyEnergyPercent}%`;
+      document.getElementById('playerEnergyText').textContent = `Energy: ${Math.floor(playerEnergyPercent)}%`;
+      document.getElementById('enemyEnergyText').textContent = `Energy: ${Math.floor(enemyEnergyPercent)}%`;
+
+      const canAct = battleState.playerEnergy >= 100;
+
       // Update button states
-      document.getElementById('specialBtn').disabled = battleState.specialCooldown > 0;
+      document.getElementById('attackBtn').disabled = !canAct;
+      document.getElementById('specialBtn').disabled = !canAct || battleState.specialCooldown > 0;
       document.getElementById('specialBtn').textContent = battleState.specialCooldown > 0 ? 
         `Special (${battleState.specialCooldown})` : 'Special';
       
-      document.getElementById('healBtn').disabled = battleState.healCooldown > 0;
+      document.getElementById('healBtn').disabled = !canAct || battleState.healCooldown > 0;
       document.getElementById('healBtn').textContent = battleState.healCooldown > 0 ? 
         `Heal (${battleState.healCooldown})` : 'Heal';
     }
@@ -716,94 +786,169 @@
       return Math.max(1, damage);
     }
 
-    // Attack action
-    function attackAction() {
-      if (battleState.turn !== 'player' || !battleState.active) return;
+    function applyJitter() {
+      const playerSide = document.querySelector('.player-side');
+      const enemySide = document.querySelector('.enemy-side');
 
-      const damage = calculateDamage(battleState.player, battleState.enemy);
-      battleState.enemyHP -= damage;
-      
-      addBattleLog(`💥 ${battleState.player.name} attacks for ${damage} damage!`);
-      updateBattleUI();
-      
-      if (battleState.enemyHP <= 0) {
-        endBattle(true);
-        return;
+      if (!playerSide || !enemySide) return;
+
+      playerSide.style.setProperty('--jitter-x', `${(Math.random() - 0.5) * 6}px`);
+      playerSide.style.setProperty('--jitter-y', `${(Math.random() - 0.5) * 6}px`);
+      playerSide.style.setProperty('--jitter-rot', `${(Math.random() - 0.5) * 2}deg`);
+
+      enemySide.style.setProperty('--jitter-x', `${(Math.random() - 0.5) * 6}px`);
+      enemySide.style.setProperty('--jitter-y', `${(Math.random() - 0.5) * 6}px`);
+      enemySide.style.setProperty('--jitter-rot', `${(Math.random() - 0.5) * 2}deg`);
+    }
+
+    function triggerImpact(side) {
+      const element = document.querySelector(`.${side}-side`);
+      if (!element) return;
+
+      element.style.setProperty('--impact-scale', '1.06');
+      setTimeout(() => {
+        element.style.setProperty('--impact-scale', '1');
+      }, 160);
+    }
+
+    function applyDamage(attacker, defenderKey, damage) {
+      const maxHPKey = `${defenderKey}MaxHP`;
+      const hpKey = `${defenderKey}HP`;
+
+      battleState[hpKey] -= damage;
+      const stunThreshold = Math.max(12, Math.floor(battleState[maxHPKey] * 0.15));
+      if (damage >= stunThreshold) {
+        battleState[`${defenderKey}StunTicks`] = 1;
+        addBattleLog(`💫 ${defenderKey === 'enemy' ? battleState.enemy.name : battleState.player.name} is stunned!`);
       }
-
-      battleState.turn = 'enemy';
-      setTimeout(enemyTurn, 1000);
+      triggerImpact(defenderKey);
     }
 
-    // Special action
-    function specialAction() {
-      if (battleState.turn !== 'player' || !battleState.active || battleState.specialCooldown > 0) return;
+    function heartbeat() {
+      if (!battleState.active) return;
 
-      const damage = calculateDamage(battleState.player, battleState.enemy, true);
-      battleState.enemyHP -= damage;
-      battleState.specialCooldown = 3;
-      
-      addBattleLog(`⚡ ${battleState.player.name} uses ${battleState.player.special} for ${damage} damage!`);
-      updateBattleUI();
-      
-      if (battleState.enemyHP <= 0) {
-        endBattle(true);
-        return;
-      }
-
-      battleState.turn = 'enemy';
-      setTimeout(enemyTurn, 1000);
-    }
-
-    // Heal action
-    function healAction() {
-      if (battleState.turn !== 'player' || !battleState.active || battleState.healCooldown > 0) return;
-
-      const healAmount = Math.floor(battleState.playerMaxHP * 0.3);
-      battleState.playerHP = Math.min(battleState.playerMaxHP, battleState.playerHP + healAmount);
-      battleState.healCooldown = 3;
-      
-      addBattleLog(`💚 ${battleState.player.name} heals for ${healAmount} HP!`);
-      updateBattleUI();
-      
-      battleState.turn = 'enemy';
-      setTimeout(enemyTurn, 1000);
-    }
-
-    // Enemy turn
-    function enemyTurn() {
-      if (!battleState.active || battleState.enemyHP <= 0) return;
-
-      // Reduce cooldowns
       if (battleState.specialCooldown > 0) battleState.specialCooldown--;
       if (battleState.healCooldown > 0) battleState.healCooldown--;
+      if (battleState.enemySpecialCooldown > 0) battleState.enemySpecialCooldown--;
+      if (battleState.enemyHealCooldown > 0) battleState.enemyHealCooldown--;
 
-      // Enemy AI: 70% attack, 20% special, 10% heal
-      const action = Math.random();
-      
-      if (action < 0.7) {
-        const damage = calculateDamage(battleState.enemy, battleState.player);
-        battleState.playerHP -= damage;
-        addBattleLog(`💥 ${battleState.enemy.name} attacks for ${damage} damage!`);
-      } else if (action < 0.9) {
-        const damage = calculateDamage(battleState.enemy, battleState.player, true);
-        battleState.playerHP -= damage;
-        addBattleLog(`⚡ ${battleState.enemy.name} uses ${battleState.enemy.special} for ${damage} damage!`);
+      if (battleState.playerStunTicks > 0) {
+        battleState.playerStunTicks--;
       } else {
-        const healAmount = Math.floor(battleState.enemyMaxHP * 0.2);
-        battleState.enemyHP = Math.min(battleState.enemyMaxHP, battleState.enemyHP + healAmount);
-        addBattleLog(`💚 ${battleState.enemy.name} heals for ${healAmount} HP!`);
+        battleState.playerEnergy = Math.min(120, battleState.playerEnergy + Math.max(5, battleState.player.speed * 2));
       }
 
-      updateBattleUI();
-      
+      if (battleState.enemyStunTicks > 0) {
+        battleState.enemyStunTicks--;
+      } else {
+        battleState.enemyEnergy = Math.min(120, battleState.enemyEnergy + Math.max(5, battleState.enemy.speed * 2));
+      }
+
+      if (battleState.enemyEnergy >= 100) {
+        executeEnemyMove();
+        battleState.enemyEnergy = 0;
+      }
+
       if (battleState.playerHP <= 0) {
         endBattle(false);
         return;
       }
 
-      battleState.turn = 'player';
-      addBattleLog('Your turn!');
+      if (battleState.enemyHP <= 0) {
+        endBattle(true);
+      }
+    }
+
+    function startBattleLoops() {
+      stopBattleLoops();
+      heartbeatInterval = setInterval(heartbeat, 600);
+      renderInterval = setInterval(() => {
+        if (!battleState.active) return;
+        applyJitter();
+        updateBattleUI();
+      }, 1000 / 12);
+    }
+
+    function stopBattleLoops() {
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+      }
+      if (renderInterval) {
+        clearInterval(renderInterval);
+        renderInterval = null;
+      }
+    }
+
+    // Attack action
+    function attackAction() {
+      if (!battleState.active || battleState.playerEnergy < 100) return;
+
+      const damage = calculateDamage(battleState.player, battleState.enemy);
+      battleState.playerEnergy = 0;
+      
+      addBattleLog(`💥 ${battleState.player.name} attacks for ${damage} damage!`);
+      applyDamage(battleState.player, 'enemy', damage);
+      
+      if (battleState.enemyHP <= 0) {
+        endBattle(true);
+        return;
+      }
+    }
+
+    // Special action
+    function specialAction() {
+      if (!battleState.active || battleState.playerEnergy < 100 || battleState.specialCooldown > 0) return;
+
+      const damage = calculateDamage(battleState.player, battleState.enemy, true);
+      battleState.playerEnergy = 0;
+      battleState.specialCooldown = 3;
+      
+      addBattleLog(`⚡ ${battleState.player.name} uses ${battleState.player.special} for ${damage} damage!`);
+      applyDamage(battleState.player, 'enemy', damage);
+      
+      if (battleState.enemyHP <= 0) {
+        endBattle(true);
+        return;
+      }
+    }
+
+    // Heal action
+    function healAction() {
+      if (!battleState.active || battleState.playerEnergy < 100 || battleState.healCooldown > 0) return;
+
+      const healAmount = Math.floor(battleState.playerMaxHP * 0.3);
+      battleState.playerHP = Math.min(battleState.playerMaxHP, battleState.playerHP + healAmount);
+      battleState.playerEnergy = 0;
+      battleState.healCooldown = 3;
+      
+      addBattleLog(`💚 ${battleState.player.name} heals for ${healAmount} HP!`);
+      triggerImpact('player');
+    }
+
+    function executeEnemyMove() {
+      if (!battleState.active || battleState.enemyHP <= 0) return;
+
+      const action = Math.random();
+      const canSpecial = battleState.enemySpecialCooldown === 0;
+      const canHeal = battleState.enemyHealCooldown === 0;
+
+      if (action < 0.65 || (!canSpecial && !canHeal)) {
+        const damage = calculateDamage(battleState.enemy, battleState.player);
+        applyDamage(battleState.enemy, 'player', damage);
+        addBattleLog(`💥 ${battleState.enemy.name} attacks for ${damage} damage!`);
+      } else if (action < 0.85 && canSpecial) {
+        const damage = calculateDamage(battleState.enemy, battleState.player, true);
+        battleState.enemySpecialCooldown = 3;
+        applyDamage(battleState.enemy, 'player', damage);
+        addBattleLog(`⚡ ${battleState.enemy.name} uses ${battleState.enemy.special} for ${damage} damage!`);
+      } else if (canHeal) {
+        const healAmount = Math.floor(battleState.enemyMaxHP * 0.2);
+        battleState.enemyHealCooldown = 3;
+        battleState.enemyHP = Math.min(battleState.enemyMaxHP, battleState.enemyHP + healAmount);
+        addBattleLog(`💚 ${battleState.enemy.name} heals for ${healAmount} HP!`);
+        triggerImpact('enemy');
+      }
     }
 
     // End battle
@@ -859,6 +1004,7 @@
       }
 
       battleState.active = false;
+      stopBattleLoops();
       setTimeout(() => {
         document.getElementById('battleArena').style.display = 'none';
         updateStatus('Battle complete!');
