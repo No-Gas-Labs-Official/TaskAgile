@@ -1,6 +1,6 @@
 # AGENTS.md - Ralph Loop State
 
-## Current Iteration: 3
+## Current Iteration: 4
 ## Phase: Core Development
 ## Completion Status: IN_PROGRESS
 
@@ -11,7 +11,7 @@
 - [x] Core HTML structure
 - [x] localStorage implementation
 - [x] Fighter database (celebrity personas + stats)
-- [ ] Combat engine (turn-based simulation)
+- [x] Combat engine (turn-based simulation)
 - [ ] XP system (progression + levels)
 - [ ] Export function (JSON download)
 - [ ] Import function (JSON upload)
@@ -22,13 +22,13 @@
 - [ ] Termux validated (Android compatible)
 
 ### Last Iteration Summary
-Objective: Implement fighter database
+Objective: Implement combat engine
 Result: SUCCESS
-Status: Added 6 celebrity personas with roles, taglines, specialties, and base stats (power, defense, speed)
-Next: Combat engine with turn-based simulation
+Status: Full turn-based combat system with HP, damage calculation, KO detection, and battle arena UI
+Next: XP progression system with level-ups
 
 ### Current Objective
-Implement combat engine with turn-based simulation
+Implement XP progression system with level-ups
 
 ### Blocking Issues
 None
@@ -43,4 +43,4 @@ None
 None
 
 ### Next Action
-Add combat arena, HP system, damage calculation, and turn-based combat logic
+Add level-up logic based on XP thresholds and stat bonuses
