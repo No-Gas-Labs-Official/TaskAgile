@@ -1,8 +1,8 @@
 {
   "ip_governance": {
-    "framework_version": "NGL-IP-GF v3.0",
+    "framework_version": "NGL-IP-GF v3.1-MOBILE",
     "copyright_claimant": "Damien Edward Featherstone",
-    "license_type": "NoGasLabs-IP-Attribution v1.0",
+    "license_type": "NoGasLabs-IP-Attribution v1.0-MOBILE-WIFI",
     "commercial_fee": "0.031 ETH per deployment",
     "ip_classification": "internal",
     "defensive_rating": "CRITICAL",
@@ -25,7 +25,8 @@
     "redistribution": "ALLOWED_ATTRIBUTION",
     "ai_training": "PROHIBITED",
     "api_access": "MONITORED",
-    "forking_allowed": true
+    "forking_allowed": true,
+    "mobile_deployment": "WIFI_ONLY_OPTIMIZED"
   },
   "governance_controls": {
     "access_control": "PUBLIC_READ",

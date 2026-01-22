@@ -6,10 +6,17 @@
 import { logError, logDev, logInfo } from './testing.js';
 import { getTelegramWebApp, getUser, isInsideTelegram } from './telegram-api.js';
 
-// Security configuration
+// Security configuration - Optimized for Android Mobile Wi-Fi
 const MAX_INPUT_LENGTH = 1000;
 const RATE_LIMIT_WINDOW = 60000; // 1 minute
 const MAX_REQUESTS_PER_WINDOW = 100;
+
+// Mobile-Specific Network Awareness
+const NETWORK_CONFIG = {
+  wifiOnly: true,
+  offlineProtection: true,
+  syncOnStable: true
+};
 const SUSPICIOUS_PATTERNS = [
   /[<>]/g,                    // HTML tags
   /javascript:/i,             // JavaScript protocol
@@ -182,6 +189,19 @@ export function checkRateLimit(identifier = 'default') {
     logError('Error checking rate limit:', error);
     return true; // Allow request on error to avoid blocking legitimate users
   }
+}
+
+/**
+ * Check if the device is on a stable Wi-Fi connection
+ */
+export function isStableWifi() {
+  if (navigator.connection) {
+    const type = navigator.connection.type;
+    const effectiveType = navigator.connection.effectiveType;
+    logDev(`Network Type: ${type}, Effective: ${effectiveType}`);
+    return type === 'wifi' || effectiveType === '4g'; // Treat strong 4g as stable for mobile
+  }
+  return navigator.onLine; // Fallback
 }
 
 /**
