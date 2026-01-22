@@ -1,6 +1,6 @@
 # AGENTS.md - Ralph Loop State Machine
 
-## Current Iteration: 2
+## Current Iteration: 3
 ## Phase: Core Development
 ## Completion Status: IN_PROGRESS
 
@@ -17,7 +17,7 @@
 - [x] Tap targets 44px+ (all buttons)
 - [x] Zero dependencies (verified)
 - [x] Termux validated (Android compatible)
-- [ ] Fighter database (celebrity personas + stats)
+- [x] Fighter database (celebrity personas + stats)
 - [ ] Combat engine (turn-based simulation)
 - [ ] XP system (progression + levels)
 - [ ] PWA installable (mobile home screen)
@@ -25,13 +25,14 @@
 - [ ] GitHub Pages deployment
 
 ### Last Iteration Summary
-Objective: Initialize project infrastructure
+Objective: Create fighter database with celebrity personas and stats
 Result: SUCCESS
 Tests: 20/21 passed (95.2%), 0 critical failures
-Git: Successfully pushed to mirror branch
+Git: Pushed commit df6f84f
+Fighters: 6 celebrities implemented with full stat tracking
 
 ### Current Objective
-Create fighter database with celebrity personas and stats
+Implement turn-based combat engine with attack calculations
 
 ### Blocking Issues
 None
@@ -46,4 +47,4 @@ None
 None
 
 ### Next Action
-Design and implement celebrity fighter data structure with at least 6 fighters
+Design combat system with damage calculations and turn mechanics
