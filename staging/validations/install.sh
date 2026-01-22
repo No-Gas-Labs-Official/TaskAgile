@@ -39,6 +39,10 @@ echo ""
 echo "📦 Installing Puppeteer..."
 echo ""
 
+if [ "${PUPPETEER_SKIP_DOWNLOAD:-}" = "1" ]; then
+  echo "⚠️  PUPPETEER_SKIP_DOWNLOAD=1 set (browser download skipped)"
+fi
+
 npm install --silent
 
 if [ $? -eq 0 ]; then

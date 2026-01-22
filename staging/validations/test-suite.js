@@ -113,8 +113,10 @@ async function runAllTests() {
   logTest('Artifact Exists', 'PASS', `deathmatch.html (${(stats.size/1024).toFixed(2)}KB)`, true);
 
   // Launch browser
+  const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH;
   const browser = await puppeteer.launch({
     headless: 'new',
+    executablePath: executablePath || undefined,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
