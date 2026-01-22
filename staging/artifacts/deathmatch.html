@@ -228,6 +228,10 @@
       padding-top: 4px;
     }
 
+    input[type="file"] {
+      display: none;
+    }
+
     @media (max-width: 600px) {
       main {
         padding: 18px 14px 28px;
@@ -249,8 +253,10 @@
       </p>
       <div class="actions" aria-label="Primary actions">
         <button type="button" id="start-loop">Start Episode</button>
-        <button type="button" class="secondary" id="save-loop">Save Beat</button>
+        <button type="button" class="secondary" id="export-state">Export</button>
+        <button type="button" class="secondary" id="import-state">Import</button>
         <button type="button" class="danger" id="reset-loop">Reset Loop</button>
+        <input type="file" id="import-file" accept=".json" />
       </div>
     </header>
 
@@ -342,6 +348,10 @@
           <span>XP System</span>
           <strong id="xp-status">Ready</strong>
         </div>
+        <div class="list-item">
+          <span>Export/Import/Reset</span>
+          <strong id="data-status">Ready</strong>
+        </div>
       </div>
     </section>
 
@@ -359,7 +369,9 @@
     const storageStatus = document.getElementById("storage-status");
     const combatStatus = document.getElementById("combat-status");
     const xpStatus = document.getElementById("xp-status");
+    const dataStatus = document.getElementById("data-status");
     const battleArena = document.getElementById("battle-arena");
+    const importFile = document.getElementById("import-file");
 
     const STORAGE_KEY = "ngl_deathmatch_state_v1";
     
@@ -681,6 +693,72 @@
       }
     };
 
+    const exportState = () => {
+      const dataStr = JSON.stringify(state, null, 2);
+      const dataBlob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `deathmatch-export-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      log("State exported successfully!");
+    };
+
+    const importState = (event) => {
+      const file = event.target.files[0];
+      if (!file) {
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const imported = JSON.parse(e.target.result);
+          
+          // Validate imported data
+          if (!imported.roster || !Array.isArray(imported.roster)) {
+            throw new Error("Invalid roster data");
+          }
+
+          // Merge with default state to ensure all fields exist
+          const merged = { ...structuredClone(defaultState), ...imported };
+          
+          // Reset HP values
+          merged.roster.forEach(member => {
+            member.hp = 100;
+            member.maxHp = 100;
+            merged.inCombat = false;
+            merged.combatants = [];
+          });
+
+          state = merged;
+          renderState();
+          persistState();
+          log("State imported successfully!");
+        } catch (error) {
+          log(`❌ Import failed: ${error.message}`);
+        }
+      };
+      reader.readAsText(file);
+      
+      // Reset file input
+      event.target.value = "";
+    };
+
+    const resetState = () => {
+      if (!confirm("Are you sure you want to reset all progress? This cannot be undone.")) {
+        return;
+      }
+      
+      state = structuredClone(defaultState);
+      if (storageAvailable) {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+      renderState();
+      log("Loop reset. Systems idle.");
+    };
+
     const renderState = () => {
       episodeCount.textContent = String(state.episode).padStart(2, "0");
       momentum.textContent = `+${state.momentum}`;
@@ -694,6 +772,7 @@
     renderState();
     combatStatus.textContent = "Active";
     xpStatus.textContent = "Active";
+    dataStatus.textContent = "Active";
 
     document.getElementById("start-loop").addEventListener("click", () => {
       state.episode += 1;
@@ -702,18 +781,15 @@
       startCombat();
     });
 
-    document.getElementById("save-loop").addEventListener("click", () => {
-      log("Beat saved to localStorage.");
+    document.getElementById("export-state").addEventListener("click", exportState);
+
+    document.getElementById("import-state").addEventListener("click", () => {
+      importFile.click();
     });
 
-    document.getElementById("reset-loop").addEventListener("click", () => {
-      state = structuredClone(defaultState);
-      if (storageAvailable) {
-        localStorage.removeItem(STORAGE_KEY);
-      }
-      renderState();
-      log("Loop reset. Systems idle.");
-    });
+    importFile.addEventListener("change", importState);
+
+    document.getElementById("reset-loop").addEventListener("click", resetState);
 
     document.getElementById("simulate-turn").addEventListener("click", () => {
       if (state.inCombat) {

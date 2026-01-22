@@ -1,6 +1,6 @@
 # AGENTS.md - Ralph Loop State
 
-## Current Iteration: 5
+## Current Iteration: 6
 ## Phase: Core Development
 ## Completion Status: IN_PROGRESS
 
@@ -13,22 +13,22 @@
 - [x] Fighter database (celebrity personas + stats)
 - [x] Combat engine (turn-based simulation)
 - [x] XP system (progression + levels)
-- [ ] Export function (JSON download)
-- [ ] Import function (JSON upload)
-- [ ] Reset function (localStorage clear)
-- [ ] Offline capable (no network calls)
+- [x] Export function (JSON download)
+- [x] Import function (JSON upload)
+- [x] Reset function (localStorage clear)
+- [x] Offline capable (no network calls)
 - [x] Tap targets 44px+ (all buttons)
 - [x] Zero dependencies (verified)
 - [ ] Termux validated (Android compatible)
 
 ### Last Iteration Summary
-Objective: Implement XP progression system
+Objective: Implement Export/Import/Reset functions
 Result: SUCCESS
-Status: XP system with level thresholds, level-up notifications, XP distribution, and XP bars added
-Next: Export/Import/Reset functions
+Status: Export (JSON download), Import (JSON upload with validation), and Reset (with confirmation) all implemented
+Next: Termux validation and final polish
 
 ### Current Objective
-Implement Export, Import, and Reset functions
+Complete remaining features and polish
 
 ### Blocking Issues
 None
@@ -43,4 +43,4 @@ None
 None
 
 ### Next Action
-Add Export (JSON download), Import (JSON upload), and full Reset buttons
+Verify all features are complete and ready for final validation
