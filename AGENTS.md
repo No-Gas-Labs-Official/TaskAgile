@@ -1,6 +1,6 @@
 # AGENTS.md - Ralph Loop State
 
-## Current Iteration: 2
+## Current Iteration: 3
 ## Phase: Core Development
 ## Completion Status: IN_PROGRESS
 
@@ -9,7 +9,7 @@
 - [x] CI workflow
 - [x] Gitignore setup
 - [x] Core HTML structure
-- [ ] localStorage implementation
+- [x] localStorage implementation
 - [ ] Fighter database
 - [ ] Combat engine
 - [ ] XP system
@@ -22,13 +22,13 @@
 - [ ] Termux validated
 
 ### Last Iteration Summary
-Objective: Build core HTML with inline CSS/JS, mobile-optimized (44px+ buttons)
-Result: SUCCESS (staging artifact created)
+Objective: Implement localStorage for loop state and fighter data
+Result: SUCCESS (state persisted, roster rendered from storage)
 Tests: npm run check (failed: missing type definition files for node and vite/client)
-Next: localStorage implementation
+Next: Fighter database
 
 ### Current Objective
-Implement localStorage for loop state and fighter data
+Implement fighter database
 
 ### Blocking Issues
 None
@@ -47,4 +47,4 @@ error TS2688: Cannot find type definition file for 'vite/client'.
 ```
 
 ### Next Action
-Define localStorage schema and wire save/load into the core HTML artifact.
+Define fighter database entries and wire them into the loop state.
