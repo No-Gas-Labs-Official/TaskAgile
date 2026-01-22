@@ -313,6 +313,20 @@
 
     const cloneState = (value) => JSON.parse(JSON.stringify(value));
 
+    const normalizeState = (input) => {
+      const normalized = { ...cloneState(defaultState), ...(input ?? {}) };
+      normalized.episode = Number.isFinite(normalized.episode) ? normalized.episode : 1;
+      normalized.momentum = Number.isFinite(normalized.momentum) ? normalized.momentum : 0;
+      normalized.xp = Number.isFinite(normalized.xp) ? normalized.xp : 0;
+      normalized.fighters = Array.isArray(normalized.fighters)
+        ? normalized.fighters
+        : cloneState(defaultState.fighters);
+      normalized.combatLog = Array.isArray(normalized.combatLog)
+        ? normalized.combatLog
+        : cloneState(defaultState.combatLog);
+      return normalized;
+    };
+
     let state = cloneState(defaultState);
 
     const renderFighters = () => {
@@ -342,6 +356,7 @@
 
     const persistState = () => {
       if (!storageAvailable) {
+        storageStatus.textContent = "Unavailable";
         return;
       }
       state.lastSavedAt = new Date().toISOString();
@@ -371,7 +386,7 @@
       }
       try {
         const parsed = JSON.parse(raw);
-        return { ...cloneState(defaultState), ...parsed };
+        return normalizeState(parsed);
       } catch (error) {
         storageStatus.textContent = "Corrupt";
         return cloneState(defaultState);
