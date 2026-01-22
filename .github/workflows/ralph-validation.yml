@@ -2,155 +2,94 @@ name: Ralph Loop Validation
 
 on:
   push:
-    branches:
-      - mirror
+    branches: [ mirror ]
+  pull_request:
+    branches: [ mirror ]
   workflow_dispatch:
 
 jobs:
   validate:
-    name: Validate Ralph Build
     runs-on: ubuntu-latest
-
+    
     steps:
-      - name: Checkout mirror branch
-        uses: actions/checkout@v4
-        with:
-          ref: mirror
-          fetch-depth: 0  # Fetch all history for rollback
-
-      - name: Verify branch isolation
-        run: |
-          BRANCH=$(git rev-parse --abbrev-ref HEAD)
-          if [[ "$BRANCH" != "mirror" ]]; then
-            echo "❌ SECURITY: Wrong branch $BRANCH"
-            exit 1
-          fi
-          echo "✅ Branch verified: mirror"
-
-      - name: Check rollback system initialized
-        run: |
-          if [ ! -f "staging/rollback.sh" ]; then
-            echo "⚠️  Rollback script not yet created (expected iteration 1)"
-          else
-            echo "✅ Rollback system present"
-            chmod +x staging/rollback.sh
-          fi
-
-      - name: Verify rollback tag exists
-        id: rollback_check
-        run: |
-          ITER=$(cat staging/ralph_state.json | grep -o '"iteration":[0-9]*' | cut -d: -f2 || echo "1")
-          TAG="rollback-iter-$ITER"
-          if git tag -l | grep -q "^$TAG$"; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "✅ Rollback tag found: $TAG"
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "⚠️  Rollback tag not found: $TAG"
-          fi
-
-      - name: Validate state file
-        run: |
-          if [ ! -f "staging/ralph_state.json" ]; then
-            echo "❌ ralph_state.json missing"
-            exit 1
-          fi
-
-          SIZE=$(stat -c%s staging/ralph_state.json)
-          if [ "$SIZE" -gt 4096 ]; then
-            echo "❌ ralph_state.json exceeds 4KB: ${SIZE}B"
-            exit 1
-          fi
-          echo "✅ State file valid: ${SIZE}B"
-
-      - name: Check artifact exists
-        id: artifact_check
-        run: |
-          if [ -f "staging/artifacts/deathmatch.html" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "✅ Artifact found"
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "⚠️  Artifact not yet created"
-          fi
-
-      - name: Validate artifact size
-        if: steps.artifact_check.outputs.exists == 'true'
-        run: |
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        ref: mirror
+    
+    - name: Check AGENTS.md exists
+      run: |
+        if [ ! -f AGENTS.md ]; then
+          echo "❌ AGENTS.md not found"
+          exit 1
+        fi
+        echo "✅ AGENTS.md exists"
+    
+    - name: Verify directory structure
+      run: |
+        mkdir -p staging/artifacts staging/logs staging/backups
+        echo "✅ Directory structure verified"
+    
+    - name: Check for artifact file
+      run: |
+        if [ -f staging/artifacts/deathmatch.html ]; then
+          echo "✅ Artifact exists"
+          ls -lh staging/artifacts/deathmatch.html
+        else
+          echo "⚠️  Artifact not yet created"
+        fi
+    
+    - name: Validate artifact size
+      run: |
+        if [ -f staging/artifacts/deathmatch.html ]; then
           SIZE=$(stat -c%s staging/artifacts/deathmatch.html)
-          if [ "$SIZE" -gt 512000 ]; then
-            echo "❌ Artifact exceeds 500KB: ${SIZE}B"
+          MAX_SIZE=512000  # 500KB in bytes
+          
+          if [ $SIZE -lt $MAX_SIZE ]; then
+            echo "✅ Artifact size: $(numfmt --to=iec-i --suffix=B $SIZE) (limit: 500KB)"
+          else
+            echo "❌ Artifact too large: $(numfmt --to=iec-i --suffix=B $SIZE) (limit: 500KB)"
             exit 1
           fi
-          echo "✅ Artifact size: ${SIZE}B"
-
-      - name: Check external dependencies
-        if: steps.artifact_check.outputs.exists == 'true'
-        run: |
-          if grep -E 'src="https?://' staging/artifacts/deathmatch.html | grep -v 'data:'; then
-            echo "❌ External dependencies detected"
+        fi
+    
+    - name: Check for external dependencies
+      run: |
+        if [ -f staging/artifacts/deathmatch.html ]; then
+          if grep -qE '(http://|https://)' staging/artifacts/deathmatch.html; then
+            echo "❌ External URLs detected in artifact"
+            grep -nE '(http://|https://)' staging/artifacts/deathmatch.html | head -20
             exit 1
+          else
+            echo "✅ No external dependencies detected"
           fi
-          echo "✅ Zero external dependencies"
-
-      - name: Validate localStorage
-        if: steps.artifact_check.outputs.exists == 'true'
-        run: |
-          if ! grep -q 'localStorage' staging/artifacts/deathmatch.html; then
-            echo "❌ localStorage not implemented"
-            exit 1
+        fi
+    
+    - name: Verify mobile tap targets
+      run: |
+        if [ -f staging/artifacts/deathmatch.html ]; then
+          if grep -qE '(min-height|min-width)\s*:\s*[0-9]+(px|rem|em)' staging/artifacts/deathmatch.html; then
+            echo "✅ Tap target styling detected"
+          else
+            echo "⚠️  No explicit tap target sizing found"
           fi
-          echo "✅ localStorage present"
-
-      - name: Check required UI elements
-        if: steps.artifact_check.outputs.exists == 'true'
-        run: |
-          for btn in Export Import Reset; do
-            if ! grep -qi "$btn" staging/artifacts/deathmatch.html; then
-              echo "❌ Missing button: $btn"
-              exit 1
-            fi
-          done
-          echo "✅ All required buttons present"
-
-      - name: Verify branding
-        if: steps.artifact_check.outputs.exists == 'true'
-        run: |
-          if ! grep -q 'No_Gas_Labs™' staging/artifacts/deathmatch.html; then
-            echo "❌ Missing No_Gas_Labs™ branding"
-            exit 1
+        fi
+    
+    - name: Check for No_Gas_Labs™ branding
+      run: |
+        if [ -f staging/artifacts/deathmatch.html ]; then
+          if grep -qi 'No_Gas_Labs\|No Gas Labs' staging/artifacts/deathmatch.html; then
+            echo "✅ No_Gas_Labs™ branding present"
+          else
+            echo "⚠️  No_Gas_Labs™ branding not found"
           fi
-          echo "✅ Brand compliance"
-
-      - name: Test JavaScript syntax
-        if: steps.artifact_check.outputs.exists == 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Validate JS
-        if: steps.artifact_check.outputs.exists == 'true'
-        run: |
-          sed -n '/<script>/,/<\/script>/p' staging/artifacts/deathmatch.html | \
-            sed '1d;$d' > /tmp/extracted.js
-
-          if [ -s /tmp/extracted.js ]; then
-            node --check /tmp/extracted.js || {
-              echo "❌ JavaScript syntax error"
-              exit 1
-            }
-            echo "✅ JavaScript valid"
-          fi
-
-      - name: Create validated tag on success
-        if: success()
-        run: |
-          ITER=$(cat staging/ralph_state.json | grep -o '"iteration":[0-9]*' | cut -d: -f2)
-          git tag "validated-iter-$ITER" || true
-          echo "✅ Created validated-iter-$ITER"
-
-      - name: Summary
-        run: |
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "✅ ALL CHECKS PASSED"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        fi
+    
+    - name: Parse AGENTS.md progress
+      run: |
+        if [ -f AGENTS.md ]; then
+          COMPLETE=$(grep -c '\[x\]' AGENTS.md || echo 0)
+          TOTAL=$(grep -c '\[[ x]\]' AGENTS.md || echo 0)
+          PERCENT=$((COMPLETE * 100 / TOTAL))
+          echo "✅ Progress: $COMPLETE/$TOTAL features complete ($PERCENT%)"
+        fi

@@ -1,6 +1,33 @@
-node_modules
-dist
+# No_Gas_Labs™ TaskAgile - Ralph Loop Gitignore
+
+# Ralph Loop State
+staging/logs/*.log
+staging/backups/*
+!staging/backups/.gitkeep
+
+# Node modules (if we add package.json later)
+node_modules/
+npm-debug.log*
+
+# OS files
 .DS_Store
-server/public
-vite.config.ts.*
-*.tar.gz
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Editor files
+.vscode/
+.idea/
+*.sublime-*
+
+# Temporary files
+*.tmp
+*.temp
+EMERGENCY_STOP
+
+# Keep essential files
+!staging/artifacts/*.html
+!staging/rollback-codex.sh
+!AGENTS.md
+!.github/workflows/*.yml
