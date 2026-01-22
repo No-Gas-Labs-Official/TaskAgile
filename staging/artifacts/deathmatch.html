@@ -94,6 +94,83 @@
       }
     }
 
+    .fighters-grid {
+      display: none;
+      margin-top: 30px;
+    }
+
+    .fighters-grid h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 1.5rem;
+    }
+
+    #fightersList {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 15px;
+    }
+
+    .fighter-card {
+      background: rgba(15, 52, 96, 0.8);
+      border: 2px solid #e94560;
+      padding: 15px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .fighter-card:hover {
+      background: #e94560;
+      color: #0f3460;
+      transform: scale(1.05);
+    }
+
+    .fighter-card.selected {
+      background: #e94560;
+      color: #0f3460;
+      box-shadow: 0 0 20px #e94560;
+    }
+
+    .fighter-name {
+      font-size: 1.1rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+      word-wrap: break-word;
+    }
+
+    .fighter-stats {
+      font-size: 0.8rem;
+      text-align: left;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 3px 0;
+    }
+
+    .fighter-xp {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #e94560;
+      font-size: 0.75rem;
+    }
+
+    .back-btn {
+      background: #0f3460;
+      color: #e94560;
+      border: 2px solid #e94560;
+      padding: 15px 25px;
+      margin-top: 20px;
+      width: 100%;
+      min-height: 44px;
+    }
+
     @media print {
       body {
         background: white;
@@ -115,31 +192,128 @@
       <p>Iteration: 1 - Infrastructure Complete</p>
     </div>
     
+    <div id="fightersGrid" class="fighters-grid" style="display: none;">
+      <h2>Select Your Fighter</h2>
+      <div id="fightersList"></div>
+    </div>
+
     <div class="controls">
       <button id="exportBtn" onclick="exportData()">Export Data</button>
       <button id="importBtn" onclick="importData()">Import Data</button>
       <button id="resetBtn" onclick="resetData()">Reset Data</button>
+      <button id="fightersBtn" onclick="showFighters()">Fighters</button>
     </div>
     
     <div class="stats">
-      <p>Version: 1.0.0-iter-1</p>
+      <p>Version: 1.0.0-iter-2</p>
       <p>Offline-capable | No dependencies</p>
     </div>
   </div>
 
   <script>
     // No_Gas_Labs™ Celebrity Deathmatch - Core Infrastructure
-    // Ralph Loop Iteration 1
+    // Ralph Loop Iteration 2
     // Zero external dependencies - localStorage powered
 
     const STORAGE_KEY = 'ngl_deathmatch_data';
-    const VERSION = '1.0.0-iter-1';
+    const VERSION = '1.0.0-iter-2';
+
+    // Fighter Database
+    const FIGHTERS = [
+      {
+        id: 1,
+        name: 'The Rock',
+        type: 'Brawler',
+        hp: 150,
+        attack: 25,
+        defense: 20,
+        speed: 15,
+        special: 'Rock Bottom',
+        xp: 0,
+        level: 1,
+        wins: 0,
+        losses: 0
+      },
+      {
+        id: 2,
+        name: 'Elon Musk',
+        type: 'Tech',
+        hp: 100,
+        attack: 35,
+        defense: 10,
+        speed: 25,
+        special: 'To The Moon',
+        xp: 0,
+        level: 1,
+        wins: 0,
+        losses: 0
+      },
+      {
+        id: 3,
+        name: 'Taylor Swift',
+        type: 'Pop Star',
+        hp: 120,
+        attack: 30,
+        defense: 15,
+        speed: 20,
+        special: 'Shake It Off',
+        xp: 0,
+        level: 1,
+        wins: 0,
+        losses: 0
+      },
+      {
+        id: 4,
+        name: 'Keanu Reeves',
+        type: 'Action Hero',
+        hp: 140,
+        attack: 28,
+        defense: 22,
+        speed: 18,
+        special: 'Matrix Dodge',
+        xp: 0,
+        level: 1,
+        wins: 0,
+        losses: 0
+      },
+      {
+        id: 5,
+        name: 'Gordon Ramsay',
+        type: 'Chef',
+        hp: 110,
+        attack: 32,
+        defense: 12,
+        speed: 22,
+        special: 'RAGE QUIT',
+        xp: 0,
+        level: 1,
+        wins: 0,
+        losses: 0
+      },
+      {
+        id: 6,
+        name: 'Dwayne Johnson',
+        type: 'Brawler',
+        hp: 160,
+        attack: 22,
+        defense: 25,
+        speed: 12,
+        special: 'People\'s Elbow',
+        xp: 0,
+        level: 1,
+        wins: 0,
+        losses: 0
+      }
+    ];
+
+    let selectedFighter = null;
 
     // Initialize on load
     window.onload = function() {
       console.log('No_Gas_Labs™ Deathmatch initialized');
       console.log('Version:', VERSION);
-      console.log('Iteration: 1');
+      console.log('Iteration: 2');
+      console.log('Fighters loaded:', FIGHTERS.length);
       loadData();
     };
 
@@ -162,6 +336,12 @@
         if (stored) {
           const data = JSON.parse(stored);
           console.log('Data loaded:', data);
+          
+          // Restore selected fighter
+          if (data.selectedFighterId) {
+            selectedFighter = FIGHTERS.find(f => f.id === data.selectedFighterId);
+          }
+          
           return data;
         } else {
           console.log('No saved data found');
@@ -242,6 +422,74 @@
     function updateStatus(message) {
       const statusDiv = document.getElementById('status');
       statusDiv.innerHTML = '<p>' + message + '</p>';
+    }
+
+    // Show fighters grid
+    function showFighters() {
+      const grid = document.getElementById('fightersGrid');
+      const list = document.getElementById('fightersList');
+      
+      if (grid.style.display === 'none' || grid.style.display === '') {
+        grid.style.display = 'block';
+        renderFighters();
+      } else {
+        grid.style.display = 'none';
+      }
+    }
+
+    // Render fighters list
+    function renderFighters() {
+      const list = document.getElementById('fightersList');
+      const savedData = loadData();
+      
+      list.innerHTML = FIGHTERS.map(fighter => {
+        const savedFighter = savedData?.fighters?.find(f => f.id === fighter.id);
+        const currentFighter = savedFighter || fighter;
+        const isSelected = selectedFighter && selectedFighter.id === currentFighter.id;
+        
+        return `
+          <div class="fighter-card ${isSelected ? 'selected' : ''}" onclick="selectFighter(${currentFighter.id})">
+            <div>
+              <div class="fighter-name">${currentFighter.name}</div>
+              <div class="fighter-stats">
+                <div class="stat-row"><span>HP:</span><span>${currentFighter.hp}</span></div>
+                <div class="stat-row"><span>ATK:</span><span>${currentFighter.attack}</span></div>
+                <div class="stat-row"><span>DEF:</span><span>${currentFighter.defense}</span></div>
+                <div class="stat-row"><span>SPD:</span><span>${currentFighter.speed}</span></div>
+              </div>
+            </div>
+            <div class="fighter-xp">
+              <div>Lvl: ${currentFighter.level}</div>
+              <div>XP: ${currentFighter.xp}</div>
+              <div>W/L: ${currentFighter.wins}/${currentFighter.losses}</div>
+            </div>
+          </div>
+        `;
+      }).join('') + `
+        <button class="back-btn" onclick="hideFighters()">Back</button>
+      `;
+    }
+
+    // Hide fighters grid
+    function hideFighters() {
+      const grid = document.getElementById('fightersGrid');
+      grid.style.display = 'none';
+    }
+
+    // Select fighter
+    function selectFighter(id) {
+      const fighter = FIGHTERS.find(f => f.id === id);
+      if (fighter) {
+        selectedFighter = fighter;
+        renderFighters();
+        updateStatus(`Selected: ${fighter.name}`);
+        console.log('Fighter selected:', fighter.name);
+        
+        // Save selection
+        const data = loadData() || {};
+        data.selectedFighterId = id;
+        saveData(data);
+      }
     }
 
     // Service Worker registration for PWA (will be implemented later)

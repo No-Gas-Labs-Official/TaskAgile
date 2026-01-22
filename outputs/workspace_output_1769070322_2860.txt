@@ -1,0 +1,16 @@
+From https://github.com/No-Gas-Labs-Official/TaskAgile
+ * [new branch]      main            -> origin/main
+ * [new branch]      mirror          -> origin/mirror
+ * [new branch]      production/build-core-html-structure -> origin/production/build-core-html-structure
+ * [new branch]      production/fix-npm-ci-synchronization-error -> origin/production/fix-npm-ci-synchronization-error
+ * [new branch]      production/implement-core-html-structure-7wm117 -> origin/production/implement-core-html-structure-7wm117
+ * [new branch]      production/implement-core-html-structure-q6hgzv -> origin/production/implement-core-html-structure-q6hgzv
+ * [new branch]      production/initialize-rollback-system-and-ci-workflow -> origin/production/initialize-rollback-system-and-ci-workflow
+ * [new tag]         rollback-iter-7 -> rollback-iter-7
+ * [new tag]         rollback-iter-1  -> rollback-iter-1
+ * [new tag]         rollback-iter-2  -> rollback-iter-2
+ * [new tag]         rollback-iter-3  -> rollback-iter-3
+ * [new tag]         rollback-iter-4  -> rollback-iter-4
+ * [new tag]         rollback-iter-5  -> rollback-iter-5
+ * [new tag]         rollback-iter-6  -> rollback-iter-6
+ * [new tag]         validated-iter-1 -> validated-iter-1
