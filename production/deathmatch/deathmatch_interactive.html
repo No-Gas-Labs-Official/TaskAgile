@@ -216,28 +216,109 @@
     </div>
 
     <script>
-        // --- SECURE STATE ENGINE (Featherstone Audit Fix) ---
+        // --- SERVICE WORKER REGISTRATION (Claude Insight) ---
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js', { scope: './' })
+                .then(reg => console.log('Service Worker Registered', reg))
+                .catch(err => console.error('Service Worker Registration Failed', err));
+        }
+
+        // --- WEB CRYPTO API IMPLEMENTATION ---
+        // --- SECURE STATE ENGINE (Web Crypto API Upgrade - ChatGPT Insight) ---
         const SYMPHONY_KEY = "NGL_SYMPHONY_V1";
         
-        function saveState() {
+        // Placeholder for the Web Crypto Key
+        let cryptoKey;
+
+        // Function to generate or retrieve the key
+        async function getCryptoKey() {
+            if (cryptoKey) return cryptoKey;
+            
+            let keyData = localStorage.getItem('NGL_CRYPTO_KEY');
+            if (!keyData) {
+                cryptoKey = await window.crypto.subtle.generateKey(
+                    { name: "AES-GCM", length: 256 },
+                    true,
+                    ["encrypt", "decrypt"]
+                );
+                keyData = await window.crypto.subtle.exportKey("jwk", cryptoKey);
+                localStorage.setItem('NGL_CRYPTO_KEY', JSON.stringify(keyData));
+            } else {
+                const jwk = JSON.parse(keyData);
+                cryptoKey = await window.crypto.subtle.importKey(
+                    "jwk", jwk, { name: "AES-GCM" }, true, ["encrypt", "decrypt"]
+                );
+            }
+            return cryptoKey;
+        }
+
+        // Function to convert ArrayBuffer to Base64 string
+        function arrayBufferToBase64(buffer) {
+            let binary = '';
+            const bytes = new Uint8Array(buffer);
+            const len = bytes.byteLength;
+            for (let i = 0; i < len; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
+        }
+
+        // Function to convert Base64 string to ArrayBuffer
+        function base64ToArrayBuffer(base64) {
+            const binary_string = atob(base64);
+            const len = binary_string.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binary_string.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        async function saveState() {
             const data = JSON.stringify({
                 xp: gameState.xp,
                 wins: gameState.wins,
                 ts: Date.now()
             });
-            // Simple obfuscation for mobile localStorage (Bob's implementation)
-            localStorage.setItem(SYMPHONY_KEY, btoa(data));
+                        const key = await getCryptoKey();
+            const iv = window.crypto.getRandomValues(new Uint8Array(12)); // 96-bit IV
+            const encodedData = new TextEncoder().encode(data);
+
+            const encrypted = await window.crypto.subtle.encrypt(
+                { name: "AES-GCM", iv: iv },
+                key,
+                encodedData
+            );
+
+            const stateToStore = {
+                iv: arrayBufferToBase64(iv),
+                data: arrayBufferToBase64(encrypted)
+            };
+            localStorage.setItem(SYMPHONY_KEY, JSON.stringify(stateToStore));
         }
 
         function loadState() {
             const saved = localStorage.getItem(SYMPHONY_KEY);
             if (saved) {
                 try {
-                    const decoded = JSON.parse(atob(saved));
+                    const key = await getCryptoKey();
+                    const stateToStore = JSON.parse(saved);
+                    const iv = base64ToArrayBuffer(stateToStore.iv);
+                    const encryptedData = base64ToArrayBuffer(stateToStore.data);
+
+                    const decrypted = await window.crypto.subtle.decrypt(
+                        { name: "AES-GCM", iv: iv },
+                        key,
+                        encryptedData
+                    );
+
+                    const decodedText = new TextDecoder().decode(decrypted);
+                    const decoded = JSON.parse(decodedText);
+                    
                     gameState.xp = decoded.xp || 0;
                     gameState.wins = decoded.wins || 0;
                     updateUIStats();
-                } catch(e) { console.error("Symphony State Corrupted"); }
+                } catch(e) { console.error("Symphony State Corrupted or Decryption Failed:", e); }
             }
         }
 
@@ -268,10 +349,10 @@
             { text: "TRUMP: You can't fire me, I'm the ratings king!", action: "trump-special" }
         ];
 
-        function startGame() {
+        async function startGame() {
             document.getElementById('overlay').style.display = 'none';
             gameState.playing = true;
-            loadState();
+            await loadState(); // Wait for state to load/decrypt
             playNextLine();
         }
 
