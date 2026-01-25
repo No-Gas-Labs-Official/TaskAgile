@@ -91,18 +91,25 @@ export default function App() {
   }, []);
 
   const handleWebSocketMessage = (data: any) => {
+    const playersPayload =
+      data?.players && typeof data.players === 'object' && !Array.isArray(data.players)
+        ? (data.players as Record<number, Player>)
+        : null;
+
     switch (data.type) {
       case 'init':
         setPlayerId(data.id);
-        setPlayers(data.players);
-        if (data.players[data.id]) {
+        if (playersPayload) {
+          setPlayers(playersPayload);
+        }
+        if (playersPayload && playersPayload[data.id]) {
           setGameState(prev => ({
             ...prev,
-            health: data.players[data.id].health,
-            gas: data.players[data.id].gas,
-            alive: data.players[data.id].alive,
-            score: data.players[data.id].score,
-            combo: data.players[data.id].combo
+            health: playersPayload[data.id].health,
+            gas: playersPayload[data.id].gas,
+            alive: playersPayload[data.id].alive,
+            score: playersPayload[data.id].score,
+            combo: playersPayload[data.id].combo
           }));
         }
         break;
@@ -163,32 +170,39 @@ export default function App() {
         break;
 
       case 'gasRecharge':
-        if (data.players[playerId]) {
+        if (playersPayload && playerId !== null && playersPayload[playerId]) {
           setGameState(prev => ({
             ...prev,
-            gas: data.players[playerId].gas
+            gas: playersPayload[playerId].gas
           }));
         }
-        setPlayers(data.players);
+        if (playersPayload) {
+          setPlayers(playersPayload);
+        }
         break;
 
       case 'gameReset':
-        setPlayers(data.players);
-        if (data.players[playerId]) {
+        if (playersPayload) {
+          setPlayers(playersPayload);
+        }
+        if (playersPayload && playerId !== null && playersPayload[playerId]) {
           setGameState(prev => ({
             ...prev,
-            health: data.players[playerId].health,
-            gas: data.players[playerId].gas,
-            alive: data.players[playerId].alive,
-            score: data.players[playerId].score,
-            combo: data.players[playerId].combo
+            health: playersPayload[playerId].health,
+            gas: playersPayload[playerId].gas,
+            alive: playersPayload[playerId].alive,
+            score: playersPayload[playerId].score,
+            combo: playersPayload[playerId].combo
           }));
         }
         break;
     }
 
     // Update leaderboard
-    const playerList = Object.values(data.players || players).sort((a: any, b: any) => b.score - a.score);
+    const leaderboardSource = playersPayload ?? players;
+    const playerList = Object.values(leaderboardSource).sort(
+      (a: Player, b: Player) => b.score - a.score
+    );
     setLeaderboard(playerList.slice(0, 10));
   };
 

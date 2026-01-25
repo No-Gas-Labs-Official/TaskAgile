@@ -6,6 +6,7 @@
 import { loadState, saveState } from './persistence.js';
 import { showError } from './error.js';
 import { sanitizeInput } from './security.js';
+import { getFighterDatabase, normalizeFighterRoster } from './fighters.js';
 
 // State configuration
 const STATE_KEY = 'ngs_game_state_v2';
@@ -29,6 +30,8 @@ let gameState = {
   dailyClaimed: false,
   lastDailyClaim: 0,
   achievements: [],
+  fighterRoster: getFighterDatabase(),
+  activeFighterId: 'nova-flux',
   statistics: {
     totalPlayTime: 0,
     highestCombo: 0,
@@ -543,6 +546,13 @@ function validateGameState() {
   if (!Array.isArray(gameState.achievements)) {
     gameState.achievements = [];
   }
+
+  gameState.fighterRoster = normalizeFighterRoster(gameState.fighterRoster);
+
+  const rosterIds = new Set(gameState.fighterRoster.map((fighter) => fighter.id));
+  if (!gameState.activeFighterId || !rosterIds.has(gameState.activeFighterId)) {
+    gameState.activeFighterId = gameState.fighterRoster[0]?.id || 'nova-flux';
+  }
   
   // Validate statistics object
   if (!gameState.statistics || typeof gameState.statistics !== 'object') {
@@ -571,6 +581,8 @@ function resetGameState() {
     dailyClaimed: false,
     lastDailyClaim: 0,
     achievements: [],
+    fighterRoster: getFighterDatabase(),
+    activeFighterId: 'nova-flux',
     statistics: {
       totalPlayTime: 0,
       highestCombo: 0,
@@ -613,6 +625,22 @@ export function getState() {
     ...gameState, 
     powerUps: { ...powerUpsState }
   };
+}
+
+/**
+ * Update the active fighter
+ */
+export function setActiveFighter(fighterId) {
+  const sanitizedId = sanitizeInput(fighterId);
+  const rosterIds = new Set(gameState.fighterRoster.map((fighter) => fighter.id));
+
+  if (!rosterIds.has(sanitizedId)) {
+    throw new Error('Invalid fighter ID');
+  }
+
+  gameState.activeFighterId = sanitizedId;
+  saveGameState();
+  notifyStateListeners();
 }
 
 /**

@@ -61,10 +61,7 @@ app.use((req, res, next) => {
 
   // Initialize WebSocket server for multiplayer
   const wss = new WebSocketServer({
-    server,
-    // Add ping/pong to detect broken connections
-    pingTimeout: 60000,
-    pingInterval: 25000
+    server
   });
 
   // Global error handler for WebSocket server
