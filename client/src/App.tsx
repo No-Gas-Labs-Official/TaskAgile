@@ -53,6 +53,13 @@ export default function App() {
   const [playerId, setPlayerId] = useState<number | null>(null);
   const [lastSlapTime, setLastSlapTime] = useState(0);
 
+  const getPlayersRecord = (value: unknown): Record<number, Player> => {
+    if (!value || typeof value !== 'object') {
+      return {};
+    }
+    return value as Record<number, Player>;
+  };
+
   // WebSocket connection
   useEffect(() => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -91,18 +98,21 @@ export default function App() {
   }, []);
 
   const handleWebSocketMessage = (data: any) => {
+    const incomingPlayers = getPlayersRecord(data.players);
+    const currentPlayerId = typeof playerId === 'number' ? playerId : null;
+
     switch (data.type) {
       case 'init':
         setPlayerId(data.id);
-        setPlayers(data.players);
-        if (data.players[data.id]) {
+        setPlayers(incomingPlayers);
+        if (incomingPlayers[data.id]) {
           setGameState(prev => ({
             ...prev,
-            health: data.players[data.id].health,
-            gas: data.players[data.id].gas,
-            alive: data.players[data.id].alive,
-            score: data.players[data.id].score,
-            combo: data.players[data.id].combo
+            health: incomingPlayers[data.id].health,
+            gas: incomingPlayers[data.id].gas,
+            alive: incomingPlayers[data.id].alive,
+            score: incomingPlayers[data.id].score,
+            combo: incomingPlayers[data.id].combo
           }));
         }
         break;
@@ -163,32 +173,34 @@ export default function App() {
         break;
 
       case 'gasRecharge':
-        if (data.players[playerId]) {
+        if (currentPlayerId !== null && incomingPlayers[currentPlayerId]) {
           setGameState(prev => ({
             ...prev,
-            gas: data.players[playerId].gas
+            gas: incomingPlayers[currentPlayerId].gas
           }));
         }
-        setPlayers(data.players);
+        setPlayers(incomingPlayers);
         break;
 
       case 'gameReset':
-        setPlayers(data.players);
-        if (data.players[playerId]) {
+        setPlayers(incomingPlayers);
+        if (currentPlayerId !== null && incomingPlayers[currentPlayerId]) {
           setGameState(prev => ({
             ...prev,
-            health: data.players[playerId].health,
-            gas: data.players[playerId].gas,
-            alive: data.players[playerId].alive,
-            score: data.players[playerId].score,
-            combo: data.players[playerId].combo
+            health: incomingPlayers[currentPlayerId].health,
+            gas: incomingPlayers[currentPlayerId].gas,
+            alive: incomingPlayers[currentPlayerId].alive,
+            score: incomingPlayers[currentPlayerId].score,
+            combo: incomingPlayers[currentPlayerId].combo
           }));
         }
         break;
     }
 
     // Update leaderboard
-    const playerList = Object.values(data.players || players).sort((a: any, b: any) => b.score - a.score);
+    const resolvedPlayers =
+      Object.keys(incomingPlayers).length > 0 ? incomingPlayers : players;
+    const playerList = Object.values(resolvedPlayers).sort((a, b) => b.score - a.score);
     setLeaderboard(playerList.slice(0, 10));
   };
 
