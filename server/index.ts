@@ -1,6 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { createServer } from "http";
-import { WebSocketServer } from "ws";
+import { WebSocketServer, WebSocket } from "ws";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
@@ -60,16 +60,29 @@ app.use((req, res, next) => {
   }
 
   // Initialize WebSocket server for multiplayer
-  const wss = new WebSocketServer({
-    server,
-    // Add ping/pong to detect broken connections
-    pingTimeout: 60000,
-    pingInterval: 25000
-  });
+  const wss = new WebSocketServer({ server });
+  const heartbeatIntervalMs = 25000;
+  type AliveWebSocket = WebSocket & { isAlive?: boolean };
+
+  const heartbeatInterval = setInterval(() => {
+    wss.clients.forEach((client) => {
+      const socket = client as AliveWebSocket;
+      if (socket.isAlive === false) {
+        socket.terminate();
+        return;
+      }
+      socket.isAlive = false;
+      socket.ping();
+    });
+  }, heartbeatIntervalMs);
 
   // Global error handler for WebSocket server
   wss.on('error', (error) => {
     log(`WebSocket Server Error: ${error.message}`);
+  });
+
+  wss.on('close', () => {
+    clearInterval(heartbeatInterval);
   });
 
   // Multiplayer game state
@@ -107,6 +120,12 @@ app.use((req, res, next) => {
   }
 
   wss.on('connection', (ws) => {
+    const socket = ws as AliveWebSocket;
+    socket.isAlive = true;
+    socket.on('pong', () => {
+      socket.isAlive = true;
+    });
+
     const playerId = nextId++;
     players[playerId] = {
       id: playerId,

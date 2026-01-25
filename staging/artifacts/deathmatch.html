@@ -287,14 +287,64 @@
     const storageStatus = document.getElementById("storage-status");
 
     const STORAGE_KEY = "ngl_deathmatch_state_v1";
+    const FIGHTER_DATABASE = [
+      {
+        id: "nova-flux",
+        name: "Nova Flux",
+        role: "Host",
+        tagline: "Energy Catalyst",
+        affinity: "Voltage",
+        specialty: "Momentum Surge"
+      },
+      {
+        id: "dj-mythos",
+        name: "DJ Mythos",
+        role: "Support",
+        tagline: "Sound Surgeon",
+        affinity: "Resonance",
+        specialty: "Crowd Control"
+      },
+      {
+        id: "captain-fringe",
+        name: "Captain Fringe",
+        role: "Challenger",
+        tagline: "Glitch Broker",
+        affinity: "Signal",
+        specialty: "Reality Break"
+      },
+      {
+        id: "luna-hex",
+        name: "Luna Hex",
+        role: "Strategist",
+        tagline: "Pattern Weaver",
+        affinity: "Shadow",
+        specialty: "Turn Denial"
+      },
+      {
+        id: "atlas-volt",
+        name: "Atlas Volt",
+        role: "Enforcer",
+        tagline: "Power Relay",
+        affinity: "Charge",
+        specialty: "Burst Damage"
+      }
+    ];
+
+    const fighterIndex = new Map(
+      FIGHTER_DATABASE.map((fighter) => [fighter.id, fighter])
+    );
+    const fighterNameIndex = new Map(
+      FIGHTER_DATABASE.map((fighter) => [fighter.name.toLowerCase(), fighter])
+    );
+
     const defaultState = {
       episode: 1,
       momentum: 0,
       xp: 0,
       fighters: [
-        { name: "Nova Flux", role: "Host", tagline: "Energy Catalyst", level: 1 },
-        { name: "DJ Mythos", role: "Support", tagline: "Sound Surgeon", level: 1 },
-        { name: "Captain Fringe", role: "Challenger", tagline: "Glitch Broker", level: 1 }
+        { id: "nova-flux", level: 1 },
+        { id: "dj-mythos", level: 1 },
+        { id: "captain-fringe", level: 1 }
       ],
       combatLog: ["Awaiting opening bell..."],
       lastSavedAt: null
@@ -313,31 +363,74 @@
 
     const cloneState = (value) => JSON.parse(JSON.stringify(value));
 
+    const normalizeRosterEntry = (entry, fallbackId) => {
+      const safeEntry = entry && typeof entry === "object" ? entry : {};
+      const level = Number.isFinite(safeEntry.level) ? safeEntry.level : 1;
+      const name = typeof safeEntry.name === "string" ? safeEntry.name : null;
+      const profile =
+        (safeEntry.id && fighterIndex.get(safeEntry.id)) ||
+        (name && fighterNameIndex.get(name.toLowerCase())) ||
+        (fallbackId && fighterIndex.get(fallbackId));
+
+      if (profile) {
+        return { id: profile.id, level };
+      }
+
+      const customId = safeEntry.id ?? `custom-${fallbackId ?? "fighter"}`;
+      return {
+        id: customId,
+        level,
+        profile: {
+          id: customId,
+          name: name ?? "Unknown Fighter",
+          role: safeEntry.role ?? "Free Agent",
+          tagline: safeEntry.tagline ?? "No dossier on file",
+          affinity: safeEntry.affinity ?? "Neutral",
+          specialty: safeEntry.specialty ?? "Wildcard"
+        }
+      };
+    };
+
+    const normalizeRoster = (fighters) => {
+      if (!Array.isArray(fighters)) {
+        return cloneState(defaultState.fighters);
+      }
+      return fighters.map((fighter, index) =>
+        normalizeRosterEntry(
+          fighter,
+          defaultState.fighters[index]?.id ?? defaultState.fighters[0]?.id
+        )
+      );
+    };
+
     const normalizeState = (input) => {
       const normalized = { ...cloneState(defaultState), ...(input ?? {}) };
       normalized.episode = Number.isFinite(normalized.episode) ? normalized.episode : 1;
       normalized.momentum = Number.isFinite(normalized.momentum) ? normalized.momentum : 0;
       normalized.xp = Number.isFinite(normalized.xp) ? normalized.xp : 0;
-      normalized.fighters = Array.isArray(normalized.fighters)
-        ? normalized.fighters
-        : cloneState(defaultState.fighters);
+      normalized.fighters = normalizeRoster(normalized.fighters);
       normalized.combatLog = Array.isArray(normalized.combatLog)
         ? normalized.combatLog
         : cloneState(defaultState.combatLog);
       return normalized;
     };
 
+    const getFighterProfile = (fighter) =>
+      fighterIndex.get(fighter.id) ?? fighter.profile;
+
     let state = cloneState(defaultState);
 
     const renderFighters = () => {
       fighterList.innerHTML = "";
       state.fighters.forEach((fighter) => {
+        const profile = getFighterProfile(fighter);
         const item = document.createElement("div");
         item.className = "list-item";
         item.innerHTML = `
           <div>
-            <strong>${fighter.name}</strong><br />
-            <small>${fighter.role}: ${fighter.tagline}</small>
+            <strong>${profile?.name ?? "Unknown Fighter"}</strong><br />
+            <small>${profile?.role ?? "Free Agent"} · ${profile?.affinity ?? "Neutral"}</small><br />
+            <small>${profile?.tagline ?? "No dossier on file"}</small>
           </div>
           <span>Lv ${fighter.level}</span>
         `;

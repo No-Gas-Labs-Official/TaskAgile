@@ -23,14 +23,14 @@ export function useIsMobile() {
 
 // Additional mobile detection utilities
 export function useDeviceOrientation() {
-  const [orientation, setOrientation] = React.useState<'portrait' | 'landscape'>(() => {
+  const [orientation, setOrientation] = useState<'portrait' | 'landscape'>(() => {
     if (typeof window !== 'undefined') {
       return window.innerHeight > window.innerWidth ? 'portrait' : 'landscape'
     }
     return 'portrait'
   })
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleOrientationChange = () => {
       setOrientation(window.innerHeight > window.innerWidth ? 'portrait' : 'landscape')
     }
@@ -48,13 +48,13 @@ export function useDeviceOrientation() {
 }
 
 export function useViewportSize() {
-  const [viewport, setViewport] = React.useState(() => ({
+  const [viewport, setViewport] = useState(() => ({
     width: typeof window !== 'undefined' ? window.innerWidth : 0,
     height: typeof window !== 'undefined' ? window.innerHeight : 0
   }))
 
-  React.useEffect(() => {
-    let timeoutId: NodeJS.Timeout
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>
 
     const handleResize = () => {
       // Debounce resize events for better performance
