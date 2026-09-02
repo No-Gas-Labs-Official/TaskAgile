@@ -65,7 +65,7 @@ app.use((req, res, next) => {
     // Add ping/pong to detect broken connections
     pingTimeout: 60000,
     pingInterval: 25000
-  });
+  } as ConstructorParameters<typeof WebSocketServer>[0]);
 
   // Global error handler for WebSocket server
   wss.on('error', (error) => {
