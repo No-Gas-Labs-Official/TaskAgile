@@ -163,7 +163,7 @@ export default function App() {
         break;
 
       case 'gasRecharge':
-        if (data.players[playerId]) {
+        if (playerId !== null && data.players[playerId]) {
           setGameState(prev => ({
             ...prev,
             gas: data.players[playerId].gas
@@ -174,7 +174,7 @@ export default function App() {
 
       case 'gameReset':
         setPlayers(data.players);
-        if (data.players[playerId]) {
+        if (playerId !== null && data.players[playerId]) {
           setGameState(prev => ({
             ...prev,
             health: data.players[playerId].health,
@@ -188,7 +188,7 @@ export default function App() {
     }
 
     // Update leaderboard
-    const playerList = Object.values(data.players || players).sort((a: any, b: any) => b.score - a.score);
+    const playerList = (Object.values(data.players || players) as Player[]).sort((a, b) => b.score - a.score);
     setLeaderboard(playerList.slice(0, 10));
   };
 
