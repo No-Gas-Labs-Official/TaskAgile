@@ -1,50 +1,33 @@
-# AGENTS.md - Ralph Loop State
+# AGENTS.md
 
-## Current Iteration: 5
-## Phase: Core Development
-## Completion Status: IN_PROGRESS
+## Repository Identity
+**Repository:** `TaskAgile`  
+**Primary language:** `JavaScript`  
+**Ecosystem:** `node`  
+**Android-first focus:** `high`  
+**Current validation status:** `READY_CANDIDATE`  
+**Validation note:** `Node install/build dry-run succeeded in Linux sandbox; still needs real Termux confirmation for Android parity.`
 
-### Features Complete
-- [x] Validation harness
-- [x] CI workflow
-- [x] Gitignore setup
-- [x] Core HTML structure
-- [x] localStorage implementation
-- [ ] Fighter database
-- [ ] Combat engine
-- [ ] XP system
-- [ ] Export function
-- [ ] Import function
-- [ ] Reset function
-- [ ] Offline capable (no network calls)
-- [x] Tap targets 44px+
-- [x] Zero dependencies (verified)
-- [ ] Termux validated
+## Operator Mandate
+You are the build agent responsible for hardening **TaskAgile** for **one-touch deployment**, **Android-first operability**, and **continuity-safe iterative execution**. This repository must remain legible to successor agents and operable from a phone-centered workflow with Termux as the execution baseline whenever feasible.
 
-### Last Iteration Summary
-Objective: Implement fighter database
-Result: IN PROGRESS (normalized loaded localStorage state)
-Tests: npm run check (failed: missing type definition files for node and vite/client)
-Next: Fighter database
+Before doing anything else, read `PROGRESS.md`, `SELF-EVAL.md`, and `NEXT-DIRECTIVE.md`. If any file is missing, regenerate it before proceeding. No progress may live only in memory.
 
-### Current Objective
-Implement fighter database
+## Current Repository Signals
+**Detected manifests:** package.json, package-lock.json  
+**Detected workflows:** .github/workflows/ci.yml, .github/workflows/ip-protection.yml, .github/workflows/org-ci.yml, .github/workflows/ralph-validation.yml
 
-### Blocking Issues
-None
+## Cycle Objective
+Achieve reproducible install, build, and verification under a Termux-safe Node workflow.
 
-### Circuit Breaker Status
-- No-progress count: 0/3
-- Same-error count: 1/5
-- Rollback count: 0/5
-- Last rollback: None
-- Status: ACTIVE
+## Hard Constraints
+Never claim success from completed steps alone. Success requires a verified artifact, passing command, or explicit statement that verification remains incomplete. Never remove continuity files. Never introduce a dependency that is known to fail under Termux without documenting the reason and fallback.
 
-### Last Error (if any)
-```
-error TS2688: Cannot find type definition file for 'node'.
-error TS2688: Cannot find type definition file for 'vite/client'.
-```
+## Mandatory First Action
+Run the repository bootstrap, install dependencies, then verify build/test scripts before any feature work.
 
-### Next Action
-Define fighter database entries and wire them into the loop state.
+## Iteration Loop
+At the end of every cycle, update `PROGRESS.md` with factual changes, update `SELF-EVAL.md` with friction and scoring, and rewrite `NEXT-DIRECTIVE.md` only if the mutation improves clarity, speed-to-first-action, failure resistance, or Android operability. If no measurable improvement exists, preserve the prior directive.
+
+## Android-First Rules
+Prefer install flows that work in Termux. Prefer scripts that can be launched with one command. Prefer CI that gives phone-reviewable status and minimal manual steps. If the repository targets web only, still avoid assumptions that require a laptop for routine maintenance.
